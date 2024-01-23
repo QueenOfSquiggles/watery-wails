@@ -1,0 +1,4 @@
+src/main.cpp: In function ‘void framebuffer_size_callback(GLFWwindow*, int, int)’:
+src/main.cpp:95:44: warning: unused parameter ‘_window’ [-Wunused-parameter]
+   95 | void framebuffer_size_callback(GLFWwindow *_window, int width, int height)
+      |                                ~~~~~~~~~~~~^~~~~~~
