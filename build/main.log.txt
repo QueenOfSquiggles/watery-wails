@@ -1,0 +1,2 @@
+/usr/bin/ld: ./build/temp/game_object.o:(.data.rel.ro._ZTI10GameObject[_ZTI10GameObject]+0x10): undefined reference to `typeinfo for Renderable'
+collect2: error: ld returned 1 exit status

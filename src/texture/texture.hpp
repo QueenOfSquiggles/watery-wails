@@ -4,6 +4,8 @@
 
 enum TextureChannels
 {
+	R = GL_R,
+	RG = GL_RG,
 	RGB = GL_RGB,
 	RGBA = GL_RGBA,
 };
@@ -14,7 +16,7 @@ class Texture
 	int width, height, channels;
 
 public:
-	Texture(std::string file, TextureChannels channels);
+	Texture(std::string file);
 	~Texture();
 
 	inline int get_width() { return width; }

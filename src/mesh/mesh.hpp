@@ -1,42 +1,41 @@
 #pragma once
 
-#include <vector>
-#include <glm/glm.hpp>
-#include <glad/glad.h>
+#include "render/render.hpp"
 #include "material/material.hpp"
+
+#include <vector>
+#include <glad/glad.h>
 
 enum VertexDataAttributeType
 {
 	FLOAT = GL_FLOAT,
 	INT = GL_INT,
 };
-class VertexDataAttribute
+struct VertexDataAttribute
 {
-	friend MeshSurface;
-
 	VertexDataAttributeType type;
 	unsigned int size;
 	unsigned int get_data_size();
 
-public:
 	VertexDataAttribute(VertexDataAttributeType p_type, unsigned int p_size);
 };
 
 class MeshSurface
 {
-	Material material;
+	Material *material;
 	unsigned int VAO, VBO, EBO, attributes, index_count;
 
 public:
-	MeshSurface(glm::vec3 data[], int indices[], std::vector<VertexDataAttribute> attributes, Material p_material);
+	MeshSurface(std::vector<float> data, std::vector<unsigned int> indices, std::vector<VertexDataAttribute> attributes, Material *p_material);
 	~MeshSurface();
-	void render();
+	void render(RenderContext ctx);
 };
 
 class Mesh
 {
-	std::vector<MeshSurface> surfaces;
+	std::vector<MeshSurface *> surfaces;
 
 public:
-	Mesh(std::vector<MeshSurface> p_surfaces) : surfaces(p_surfaces) {}
+	Mesh(std::vector<MeshSurface *> p_surfaces);
+	void render(RenderContext ctx);
 };

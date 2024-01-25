@@ -1,0 +1,8 @@
+src/window/window.cpp: In lambda function:
+src/window/window.cpp:18:40: warning: unused parameter ‘w’ [-Wunused-parameter]
+   18 |         auto callback = [](GLFWwindow *w, int width, int height)
+      |                            ~~~~~~~~~~~~^
+src/window/window.cpp: In member function ‘void GameWindow::on_resize(GLFWwindow*, int, int)’:
+src/window/window.cpp:26:40: warning: unused parameter ‘window’ [-Wunused-parameter]
+   26 | void GameWindow::on_resize(GLFWwindow *window, int width, int height)
+      |                            ~~~~~~~~~~~~^~~~~~

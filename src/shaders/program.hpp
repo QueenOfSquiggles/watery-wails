@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #ifndef SHADER_LOG_SIZE
 #define SHADER_LOG_SIZE 512
@@ -33,9 +34,9 @@ private:
 	ShaderComp load_program(ShaderType type, std::filesystem::path file);
 
 public:
-	ShaderProgram();
+	ShaderProgram(std::filesystem::path vert, std::filesystem::path frag);
 	~ShaderProgram();
-	void create(std::filesystem::path vert, std::filesystem::path frag);
+
 	void enable();
 	void disable();
 
@@ -47,4 +48,5 @@ public:
 	void set_vec2(std::string name, glm::vec2 value);
 	void set_vec3(std::string name, glm::vec3 value);
 	void set_vec4(std::string name, glm::vec4 value);
+	void set_mat4(std::string name, glm::mat4 value);
 };

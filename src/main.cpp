@@ -1,106 +1,95 @@
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "shaders/program.hpp"
-#include "texture/texture.hpp"
+#include <iostream>
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void process_input(GLFWwindow *window);
+#include "game_object/game_object.hpp"
+#include "window/window.hpp"
 
+using namespace std;
 int main()
 {
 	stbi_set_flip_vertically_on_load(true);
+	cout << "Initalizing GLFW" << endl;
+	if (!glfwInit())
+	{
+		cerr << "Failed to intialize GLFW" << endl;
+		return -1;
+	}
 
-	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	int width = 800, height = 600;
-	GLFWwindow *window = glfwCreateWindow(width, height, "Game Window", NULL, NULL);
-	if (window == NULL)
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	cout << "Creating window" << endl;
+	GameWindow window(800, 600, "Game Window");
+	if (!window.is_valid())
 	{
-		glfwTerminate();
+		cerr << "Failed to initialize window!" << endl;
 		return -1;
 	}
-	glfwMakeContextCurrent(window);
+
+	cout << "Initalizing GLAD" << endl;
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
+		cerr << "Failed to initialize GLAD GL Loader" << endl;
 		glfwTerminate();
 		return -1;
 	}
-	glViewport(0, 0, width, height);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-	ShaderProgram program;
-	unsigned int VBO, VAO, EBO;
+	cout << "Creating Game Data:" << endl;
+	std::vector<float> vertices{
+		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.5f, -0.5f, 0.0f,
+		0.0f, 1.0f, 0.0f, 1.0f, 0.0f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f};
+	std::vector<unsigned int> indices{0, 1, 3, 1, 2, 3};
+	cout << " - Vertex data and Index data" << endl;
 
-	float vertices[] = {
-		// positions          // colors           // texture coords
-		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,	  // top right
-		0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
-		-0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-		-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f	  // top left
+	Texture albedo("./res/texture/wall.jpg");
+	Texture normal("./res/texture/wall.jpg");
+	Texture orm("./res/texture/wall.jpg");
+
+	cout << " - Textures" << endl;
+	ShaderProgram program("./res/default.vert", "./res/default.frag");
+	cout << " - Shader Program" << endl;
+	Material mat(&program, &albedo, &normal, &orm);
+	cout << " - Material data" << endl;
+
+	std::vector<VertexDataAttribute> attribs{
+
+		{VertexDataAttributeType::FLOAT, 3}, // position
+		{VertexDataAttributeType::FLOAT, 3}, // colour
+		{VertexDataAttributeType::FLOAT, 2}, // uvs
 	};
-	unsigned int indices[] = {
-		// note that we start from 0!
-		0, 1, 3, // first triangle
-		1, 2, 3	 // second triangle
-	};
-	glGenBuffers(1, &VBO);
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &EBO);
 
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
+	MeshSurface surf(vertices, indices, attribs, &mat);
+	cout << " - MeshSurface (with attribute pointers)" << endl;
+	Mesh mesh(std::vector<MeshSurface *>{
+		&surf,
+	});
+	cout << " - Mesh" << endl;
+	GameObject obj(&mesh);
+	cout << " - Game Object" << endl;
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	window.renderer.register_batch("default", &program);
+	window.renderer.register_game_object("default", &obj);
+	cout << " - Registered with Window::renderer" << endl;
 
-	program.create("./res/default.vert", "./res/default.frag");
-	Texture texture("./res/texture/wall.jpg", TextureChannels::RGB);
-	Texture face("./res/texture/awesomeface.png", TextureChannels::RGBA);
-
-	while (!glfwWindowShouldClose(window))
+	cout << "Starting game loop" << endl;
+	double time = glfwGetTime();
+	double delta = 0;
+	while (window.is_running())
 	{
-		process_input(window);
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-		program.enable();
-		texture.bind_slot(0);
-		face.bind_slot(1);
-		program.set_int("wall_tex", 0);
-		program.set_int("face_tex", 1);
-		float grad = float((sin(glfwGetTime()) * 0.5) + 0.5);
-		program.set_float("gradient", grad);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		texture.unbind();
-		program.disable();
-		glfwPollEvents();
-		glfwSwapBuffers(window);
-	}
+		double now = glfwGetTime();
+		delta = now - time;
+		time = now;
 
-	glfwTerminate();
+		obj.rotation.x += glm::radians(45.0) * delta;
+		window.game_tick();
+	}
+	cout << "Game loop completed" << endl;
 	return 0;
-}
-
-void framebuffer_size_callback(GLFWwindow *_window, int width, int height)
-{
-	glViewport(0, 0, width, height);
-}
-
-void process_input(GLFWwindow *window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-	{
-		glfwSetWindowShouldClose(window, true);
-	}
 }

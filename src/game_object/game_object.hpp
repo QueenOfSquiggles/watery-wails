@@ -1,17 +1,20 @@
 #pragma once
 
+#include "render/render.hpp"
+#include "mesh/mesh.hpp"
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "mesh/mesh.hpp"
-class GameObject
+class GameObject : public Renderable
 {
-	Mesh mesh;
+	Mesh *mesh;
 
 public:
 	glm::vec3 position;
 	glm::vec3 rotation;
 	glm::vec3 scale;
 
-	GameObject(Mesh p_mesh) : mesh(p_mesh) {}
+	GameObject(Mesh *p_mesh);
+
+	void render(RenderContext ctx) override;
 };

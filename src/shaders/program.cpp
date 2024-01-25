@@ -2,16 +2,7 @@
 #include <iostream>
 #include "program.hpp"
 
-ShaderProgram::ShaderProgram()
-{
-}
-
-ShaderProgram::~ShaderProgram()
-{
-	glDeleteProgram(this->program);
-}
-
-void ShaderProgram::create(std::filesystem::path vert, std::filesystem::path frag)
+ShaderProgram::ShaderProgram(std::filesystem::path vert, std::filesystem::path frag)
 {
 	this->program = 0;
 	ShaderComp vcomp = load_program(ShaderType::VERTEX, vert);
@@ -44,6 +35,11 @@ void ShaderProgram::create(std::filesystem::path vert, std::filesystem::path fra
 	}
 	glDeleteShader(this->vertex);
 	glDeleteShader(this->fragment);
+}
+
+ShaderProgram::~ShaderProgram()
+{
+	glDeleteProgram(this->program);
 }
 
 ShaderComp ShaderProgram::load_program(ShaderType type, std::filesystem::path file)
@@ -135,4 +131,9 @@ void ShaderProgram::set_vec3(std::string name, glm::vec3 value)
 void ShaderProgram::set_vec4(std::string name, glm::vec4 value)
 {
 	glUniform4f(glGetUniformLocation(this->program, name.c_str()), value.x, value.y, value.z, value.w);
+}
+void ShaderProgram::set_mat4(std::string name, glm::mat4 value)
+{
+	auto loc = glGetUniformLocation(this->program, name.c_str());
+	glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
 }
