@@ -10,12 +10,12 @@
 struct BatchEntry
 {
 	std::shared_ptr<ShaderProgram> program;
-	std::vector<std::shared_ptr<Renderable>> objects;
+	std::vector<Renderable *> objects;
 };
 
 class Renderer
 {
-	std::map<std::string, BatchEntry> batches;
+	std::map<std::string, std::unique_ptr<BatchEntry>> batches;
 	float field_of_view = 90.0f;
 	float view_ratio = 6.0f / 8.0f;
 

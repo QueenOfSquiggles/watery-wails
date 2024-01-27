@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stb_image.h>
 #include <memory>
+#include <functional>
 
 class Engine
 {

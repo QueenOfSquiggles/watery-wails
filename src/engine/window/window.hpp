@@ -8,11 +8,11 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <functional>
 #include <memory>
+
 class GameWindow
 {
-	std::shared_ptr<GLFWwindow> window;
+	GLFWwindow *window;
 
 public:
 	int width, height;
