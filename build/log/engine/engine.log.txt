@@ -1,4 +1,0 @@
-src/engine/engine.cpp: In function ‘void window_resize_callback(GLFWwindow*, int, int)’:
-src/engine/engine.cpp:66:41: warning: unused parameter ‘window’ [-Wunused-parameter]
-   66 | void window_resize_callback(GLFWwindow *window, int width, int height)
-      |                             ~~~~~~~~~~~~^~~~~~

@@ -1,1 +1,2 @@
-rm -r ./build/temp
+rm -r ./build/log
+rm -r ./build/obj

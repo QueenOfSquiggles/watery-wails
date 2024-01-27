@@ -1,8 +1,0 @@
-src/engine/render_system/mesh/mesh.cpp: In constructor ‘MeshSurface::MeshSurface(std::vector<float>, std::vector<unsigned int>, std::vector<VertexDataAttribute>, std::shared_ptr<Material>)’:
-src/engine/render_system/mesh/mesh.cpp:44:90: warning: cast to pointer from integer of different size [-Wint-to-pointer-cast]
-   44 |                 glVertexAttribPointer(index, attrib.size, attrib.type, GL_FALSE, stride, (void *)offset);
-      |                                                                                          ^~~~~~~~~~~~~~
-src/engine/render_system/mesh/mesh.cpp: In member function ‘void MeshSurface::render(RenderContext)’:
-src/engine/render_system/mesh/mesh.cpp:62:40: warning: unused parameter ‘ctx’ [-Wunused-parameter]
-   62 | void MeshSurface::render(RenderContext ctx)
-      |                          ~~~~~~~~~~~~~~^~~
