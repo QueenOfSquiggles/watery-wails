@@ -94,7 +94,7 @@ int main()
 	//
 
 	auto obj = std::shared_ptr<MyObj>(new MyObj(mesh));
-	obj->position = {0, 0, -10};
+	obj->position = {0, 2, -10};
 	obj->rotation = {0, 0, glm::radians(45.0f)};
 	engine->load_object(std::dynamic_pointer_cast<MyObj>(obj));
 
