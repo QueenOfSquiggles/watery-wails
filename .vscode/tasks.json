@@ -5,6 +5,9 @@
 			"label": "SSBS",
 			"type": "shell",
 			"command": "ssbs",
+			"problemMatcher": [
+				"$gcc"
+			],
 			"group": {
 				"kind": "build",
 				"isDefault": true

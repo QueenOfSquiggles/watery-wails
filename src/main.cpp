@@ -1,62 +1,80 @@
-
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
+#include "engine/engine.hpp"
 #include <iostream>
-
-#include "game_object/game_object.hpp"
-#include "window/window.hpp"
-
+#include <memory>
 using namespace std;
+using namespace input;
+class MyObj : public GameObject
+{
+public:
+	MyObj(shared_ptr<Mesh> mesh) : GameObject(mesh) {}
+	void render(RenderContext ctx) override
+	{
+		rotation.z += glm::radians(45.0) * ctx.delta;
+		GameObject::render(ctx);
+	}
+};
+
 int main()
 {
-	stbi_set_flip_vertically_on_load(true);
-	cout << "Initalizing GLFW" << endl;
-	if (!glfwInit())
-	{
-		cerr << "Failed to intialize GLFW" << endl;
-		return -1;
-	}
+	Engine *engine = new Engine();
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	map<string, vector<InputMapping>> mappings = {
+		{
+			"forward",
+			{
+				{Key::W, Mode::PRESSED},
+				{Key::UP, Mode::PRESSED},
+			},
+		},
+		{
+			"back",
+			{
+				{Key::S, Mode::PRESSED},
+				{Key::DOWN, Mode::PRESSED},
+			},
+		},
+		{
+			"left",
+			{
+				{Key::A, Mode::PRESSED},
+				{Key::LEFT, Mode::PRESSED},
+			},
+		},
+		{
+			"right",
+			{
+				{Key::D, Mode::PRESSED},
+				{Key::RIGHT, Mode::PRESSED},
+			},
+		},
+		{
+			"force_quit",
+			{
+				{Key::F8, Mode::PRESSED},
+			},
+		},
+	};
 
-	cout << "Creating window" << endl;
-	GameWindow window(800, 600, "Game Window");
-	if (!window.is_valid())
-	{
-		cerr << "Failed to initialize window!" << endl;
-		return -1;
-	}
-
-	cout << "Initalizing GLAD" << endl;
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
-		cerr << "Failed to initialize GLAD GL Loader" << endl;
-		glfwTerminate();
-		return -1;
-	}
-
-	cout << "Creating Game Data:" << endl;
+	engine->input->register_actions(mappings);
+	//
+	//	CONVERT TO MODEL LOADING CODE
+	// + + + + + + + + + + + + + + + +
 	std::vector<float> vertices{
 		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.5f, -0.5f, 0.0f,
 		0.0f, 1.0f, 0.0f, 1.0f, 0.0f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
 		0.0f, 0.0f, -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f};
 	std::vector<unsigned int> indices{0, 1, 3, 1, 2, 3};
-	cout << " - Vertex data and Index data" << endl;
 
-	Texture albedo("./res/texture/wall.jpg");
-	Texture normal("./res/texture/wall.jpg");
-	Texture orm("./res/texture/wall.jpg");
+	auto albedo = shared_ptr<Texture>(new Texture("./res/texture/wall.jpg"));
+	auto normal = shared_ptr<Texture>(new Texture("./res/texture/awesomeface.png"));
+	auto orm = shared_ptr<Texture>(new Texture("./res/texture/wall.jpg"));
+	auto program = engine->window->renderer->get_program_for("default");
 
-	cout << " - Textures" << endl;
-	ShaderProgram program("./res/default.vert", "./res/default.frag");
-	cout << " - Shader Program" << endl;
-	Material mat(&program, &albedo, &normal, &orm);
-	cout << " - Material data" << endl;
+	if (program == nullptr)
+	{
+		cerr << "Failed to load default shader program!" << endl;
+	}
+	auto mat = shared_ptr<Material>(new Material(program, albedo, normal, orm));
 
 	std::vector<VertexDataAttribute> attribs{
 
@@ -65,31 +83,42 @@ int main()
 		{VertexDataAttributeType::FLOAT, 2}, // uvs
 	};
 
-	MeshSurface surf(vertices, indices, attribs, &mat);
-	cout << " - MeshSurface (with attribute pointers)" << endl;
-	Mesh mesh(std::vector<MeshSurface *>{
-		&surf,
-	});
-	cout << " - Mesh" << endl;
-	GameObject obj(&mesh);
-	cout << " - Game Object" << endl;
+	auto surf = shared_ptr<MeshSurface>(new MeshSurface(vertices, indices, attribs, mat));
 
-	window.renderer.register_batch("default", &program);
-	window.renderer.register_game_object("default", &obj);
-	cout << " - Registered with Window::renderer" << endl;
+	auto mesh = shared_ptr<Mesh>(new Mesh(
+		std::vector<shared_ptr<MeshSurface>>{
+			surf,
+		}));
+	// + + + + + + + + + + + + + + + +
+	// /CONVERT TO MODEL LOADING CODE
+	//
 
-	cout << "Starting game loop" << endl;
-	double time = glfwGetTime();
-	double delta = 0;
-	while (window.is_running())
+	auto obj = std::shared_ptr<MyObj>(new MyObj(mesh));
+	obj->position = {0, 0, -10};
+	obj->rotation = {0, 0, glm::radians(45.0f)};
+	engine->load_object(std::dynamic_pointer_cast<MyObj>(obj));
+
+	// create pointers to needed resources
+	shared_ptr<Camera> cam = engine->window->renderer->camera;
+	shared_ptr<Input> input = engine->input;
+	float move_speed = 10.0f;
+	auto game_loop = [=](double delta)
 	{
-		double now = glfwGetTime();
-		delta = now - time;
-		time = now;
+		glm::vec2 move = input->get_action_vector("left", "right", "forward", "back");
 
-		obj.rotation.x += glm::radians(45.0) * delta;
-		window.game_tick();
-	}
-	cout << "Game loop completed" << endl;
+		if (glm::length(move) > 0.2f)
+		{
+			move = glm::normalize(move);
+			float x = move.x * delta * move_speed;
+			float z = move.y * delta * move_speed;
+			cam->position += glm::vec3(x, 0, z);
+		}
+
+		if (input->is_action_pressed("force_quit"))
+		{
+			engine->quit();
+		}
+	};
+	engine->start(game_loop);
 	return 0;
 }
