@@ -6,7 +6,7 @@ GameWindow::GameWindow(int width, int height, std::string title)
 	: width(width), height(height), renderer(new Renderer())
 {
 
-	window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
+	window = std::shared_ptr<GLFWwindow>(glfwCreateWindow(width, height, title.c_str(), NULL, NULL));
 	if (window == NULL)
 	{
 		cerr << "Failed to initialize GLFWwindow*" << endl;
@@ -18,8 +18,8 @@ GameWindow::GameWindow(int width, int height, std::string title)
 		glViewport(0, 0, width, height);
 		// this->on_resize(w, width, height);
 	};
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, callback);
+	glfwMakeContextCurrent(window.get());
+	glfwSetFramebufferSizeCallback(window.get(), callback);
 }
 void GameWindow::on_resize(int width, int height)
 {
@@ -35,7 +35,7 @@ void GameWindow::game_tick(double delta)
 
 	this->renderer->render(delta, glfwGetTime());
 
-	glfwSwapBuffers(window);
+	glfwSwapBuffers(window.get());
 	glfwPollEvents();
 }
 
@@ -57,23 +57,18 @@ void GameWindow::run_game_loop_synchronous()
 	}
 }
 
-GameWindow::~GameWindow()
-{
-	delete renderer;
-	delete window;
-}
 bool GameWindow::is_valid()
 {
 	return window != NULL;
 }
 bool GameWindow::is_running()
 {
-	return !glfwWindowShouldClose(this->window);
+	return !glfwWindowShouldClose(this->window.get());
 }
 
-GLFWwindow *GameWindow::get() { return window; }
+GLFWwindow *GameWindow::get() { return window.get(); }
 
 void GameWindow::close()
 {
-	glfwSetWindowShouldClose(window, GLFW_TRUE);
+	glfwSetWindowShouldClose(window.get(), GLFW_TRUE);
 }

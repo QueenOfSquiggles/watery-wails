@@ -1,4 +1,6 @@
 #pragma once
+
+#include "engine/math/math.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -8,7 +10,7 @@ private:
 	glm::mat4 projection;
 
 public:
-	glm::vec3 position;
+	Transform transform;
 
 	Camera();
 	void create_perspective(float view_angle_degrees, float frame_ratio, float near, float far);

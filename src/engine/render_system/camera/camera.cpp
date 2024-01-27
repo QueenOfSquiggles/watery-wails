@@ -1,7 +1,7 @@
 #include "camera.hpp"
 
 Camera::Camera()
-	: projection(1.0f), position(1.0f)
+	: projection(1.0f)
 {
 }
 
@@ -12,8 +12,7 @@ void Camera::create_perspective(float view_angle_degrees, float frame_ratio, flo
 
 glm::mat4 Camera::get_view_matrix()
 {
-	auto view = glm::mat4(1.0f);
-	return glm::translate(view, -position);
+	return transform.as_mat4_inverted();
 }
 glm::mat4 Camera::get_projection_matrix()
 {

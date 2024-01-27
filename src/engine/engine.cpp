@@ -32,10 +32,6 @@ Engine::Engine()
 		glfwTerminate();
 		return;
 	}
-	// if (Engine::instance != nullptr)
-	// {
-	// 	cerr << "Duplicate engine instance initialized!";
-	// }
 	window->renderer->register_batch("default", std::shared_ptr<ShaderProgram>(new ShaderProgram("./res/default.vert", "./res/default.frag")));
 	glfwSetFramebufferSizeCallback(window->get(), window_resize_callback);
 	Engine::instance = std::shared_ptr<Engine>(this);

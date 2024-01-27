@@ -9,16 +9,15 @@
 #include <vector>
 #include <iostream>
 #include <functional>
-
+#include <memory>
 class GameWindow
 {
-	GLFWwindow *window;
+	std::shared_ptr<GLFWwindow> window;
 
 public:
 	int width, height;
-	Renderer *renderer;
+	std::shared_ptr<Renderer> renderer;
 	GameWindow(int width, int height, std::string title);
-	~GameWindow();
 
 	void game_tick(double delta);
 	bool is_valid();
