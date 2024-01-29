@@ -10,7 +10,7 @@
 struct BatchEntry
 {
 	std::shared_ptr<ShaderProgram> program;
-	std::vector<Renderable *> objects;
+	std::vector<std::shared_ptr<Renderable>> objects;
 };
 
 class Renderer

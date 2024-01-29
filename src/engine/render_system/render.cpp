@@ -24,7 +24,7 @@ void Renderer::register_game_object(std::string batch_name, std::shared_ptr<Rend
 {
 	if (auto batch = this->batches.find(batch_name); batch != this->batches.end())
 	{
-		batch->second->objects.push_back(obj.get());
+		batch->second->objects.push_back(obj);
 	}
 }
 

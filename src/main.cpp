@@ -106,7 +106,7 @@ int main()
 	//
 
 	auto obj = std::shared_ptr<MyObj>(new MyObj(mesh));
-	obj->transform.position = {0, 2, -10};
+	obj->transform.position = {0, 0, -1};
 	obj->transform.rotation = {0, 0, glm::radians(45.0f)};
 	engine->load_object(std::dynamic_pointer_cast<MyObj>(obj));
 
@@ -124,9 +124,10 @@ int main()
 			move = glm::normalize(move);
 			float x = move.x * delta * move_speed;
 			float z = move.y * delta * move_speed;
-			cam->transform.position += glm::vec3(x, 0, z);
+			cam->transform.position += cam->transform.direction_forward() * z;
+			cam->transform.position += cam->transform.direction_right() * x;
 		}
-		float rotate = input->get_action_axis("rotate_left", "rotate_right");
+		float rotate = -input->get_action_axis("rotate_left", "rotate_right");
 		if (abs(rotate) > 0.1f)
 		{
 			cam->transform.rotation.y += rotate * delta * turn_speed;

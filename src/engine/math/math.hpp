@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+/// Coordination of position, angle, and scale for 3D objects.
 struct Transform
 {
 	glm::vec3 position;
@@ -10,4 +11,8 @@ struct Transform
 	Transform();
 	glm::mat4 as_mat4();
 	glm::mat4 as_mat4_inverted();
+
+	glm::vec3 direction_forward();
+	glm::vec3 direction_right();
+	glm::vec3 direction_up();
 };

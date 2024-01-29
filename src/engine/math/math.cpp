@@ -23,3 +23,36 @@ glm::mat4 Transform::as_mat4_inverted()
 	trans = glm::scale(trans, scale);
 	return trans;
 }
+
+glm::vec3 Transform::direction_forward()
+{
+	auto transformed = glm::vec4(0, 0, 1, 1) * as_mat4();
+	auto angle = glm::vec3(transformed.x, transformed.y, transformed.z);
+	if (glm::length(angle) > 0.1f)
+	{
+		angle = glm::normalize(angle);
+	}
+	return angle;
+}
+
+glm::vec3 Transform::direction_right()
+{
+	auto transformed = glm::vec4(1, 0, 0, 1) * as_mat4();
+	auto angle = glm::vec3(transformed.x, transformed.y, transformed.z);
+	if (glm::length(angle) > 0.1f)
+	{
+		angle = glm::normalize(angle);
+	}
+	return angle;
+}
+
+glm::vec3 Transform::direction_up()
+{
+	auto transformed = glm::vec4(0, 1, 0, 1) * as_mat4();
+	auto angle = glm::vec3(transformed.x, transformed.y, transformed.z);
+	if (glm::length(angle) > 0.1f)
+	{
+		angle = glm::normalize(angle);
+	}
+	return angle;
+}
