@@ -1,6 +1,11 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <string>
+
+glm::vec3 safe_normalize(glm::vec3 in_vec);
+std::string stringify(glm::vec3 vec);
 
 /// Coordination of position, angle, and scale for 3D objects.
 struct Transform

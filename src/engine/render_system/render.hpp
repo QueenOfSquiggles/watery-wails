@@ -18,6 +18,8 @@ class Renderer
 	std::map<std::string, std::unique_ptr<BatchEntry>> batches;
 	float field_of_view = 90.0f;
 	float view_ratio = 6.0f / 8.0f;
+	float camera_near = 0.1f;
+	float camera_far = 1024.0f;
 
 public:
 	std::shared_ptr<Camera> camera;

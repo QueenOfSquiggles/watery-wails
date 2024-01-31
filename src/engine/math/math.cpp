@@ -1,5 +1,14 @@
 #include "math.hpp"
 
+glm::vec3 safe_normalize(glm::vec3 in_vec)
+{
+	return glm::length(in_vec) == 0.0f ? in_vec : glm::normalize(in_vec);
+}
+std::string stringify(glm::vec3 vec)
+{
+	return glm::to_string(vec);
+}
+
 Transform::Transform() : position(0.0f), rotation(0.0f), scale(1.0f) {}
 
 glm::mat4 Transform::as_mat4()

@@ -1,0 +1,4 @@
+struct Something {
+	float a;
+	vec2 b;
+};

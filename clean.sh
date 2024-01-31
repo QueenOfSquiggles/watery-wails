@@ -1,2 +1,1 @@
-rm -r ./build/log
-rm -r ./build/obj
+rm -r ./build

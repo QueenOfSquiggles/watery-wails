@@ -15,18 +15,25 @@ GameWindow::GameWindow(int width, int height, std::string title)
 	}
 	glfwMakeContextCurrent(window);
 }
+
+GameWindow::~GameWindow()
+{
+	glfwTerminate();
+	// delete window;
+}
+
 void GameWindow::on_resize(int width, int height)
 {
 	this->width = width;
 	this->height = height;
 	this->renderer->on_window_resized(width, height);
+	glViewport(0, 0, this->width, this->height);
 }
 
 void GameWindow::game_tick(double delta)
 {
 	glClearColor(0, 0, 0, 1);
-	glClear(GL_COLOR_BUFFER_BIT);
-
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	this->renderer->render(delta, glfwGetTime());
 
 	glfwSwapBuffers(window);

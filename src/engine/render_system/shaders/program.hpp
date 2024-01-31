@@ -33,6 +33,7 @@ private:
 	unsigned int fragment;
 	unsigned int program;
 
+	std::string preprocess_shader_code(std::string in_code, std::filesystem::path file);
 	ShaderComp load_program(ShaderType type, std::filesystem::path file);
 
 public:

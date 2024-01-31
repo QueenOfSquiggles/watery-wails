@@ -18,6 +18,7 @@ public:
 	int width, height;
 	std::shared_ptr<Renderer> renderer;
 	GameWindow(int width, int height, std::string title);
+	~GameWindow();
 
 	void game_tick(double delta);
 	bool is_valid();

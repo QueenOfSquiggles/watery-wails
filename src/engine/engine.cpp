@@ -19,6 +19,7 @@ Engine::Engine()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+	// TODO extend to allow setting the window size at initialization
 	window = std::shared_ptr<GameWindow>(new GameWindow(800, 600, "Game Window"));
 	if (!window->is_valid())
 	{
@@ -32,15 +33,23 @@ Engine::Engine()
 		glfwTerminate();
 		return;
 	}
-	window->renderer->register_batch("default", std::shared_ptr<ShaderProgram>(new ShaderProgram("./res/default.vert", "./res/default.frag")));
+	add_render_group("default");
+	// window->renderer->register_batch("default", std::shared_ptr<ShaderProgram>(new ShaderProgram("./res/default.vert", "./res/default.frag")));
 	glfwSetFramebufferSizeCallback(window->get(), window_resize_callback);
 	Engine::instance = std::shared_ptr<Engine>(this);
 	input = std::shared_ptr<input::Input>(new input::Input());
+	glEnable(GL_DEPTH_TEST);
+	window_resize_callback(window->get(), 800, 600);
 }
 
-void Engine::load_object(std::shared_ptr<GameObject> obj)
+void Engine::load_object(std::shared_ptr<GameObject> obj, std::string render_group)
 {
-	window->renderer->register_game_object("default", obj);
+	window->renderer->register_game_object(render_group, obj);
+}
+
+void Engine::add_render_group(std::string name)
+{
+	window->renderer->register_batch(name, std::shared_ptr<ShaderProgram>(new ShaderProgram("res/shader/" + name + ".vert", "res/shader/" + name + ".frag")));
 }
 
 void Engine::start(std::function<void(double)> game_tick_func)
@@ -56,13 +65,17 @@ void Engine::start(std::function<void(double)> game_tick_func)
 		window->game_tick(delta);
 		if (game_tick_func)
 			game_tick_func(delta);
+		else
+			std::cout << "INVALID GAME LOOP!!!!!" << std::endl;
 	}
 }
 
 void window_resize_callback(GLFWwindow *window, int width, int height)
 {
+	std::cout << "Window resized: " << width << "x" << height << std::endl;
 	if (Engine::instance == nullptr)
 	{
+		std::cerr << "Failed to handle window resize callback!!!!" << std::endl;
 		return;
 	}
 	Engine::instance->window->on_resize(width, height);

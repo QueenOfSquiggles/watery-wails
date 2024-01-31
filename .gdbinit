@@ -1,0 +1,1 @@
+# -exec skip -rfunction .*\\.(h|c|tcc)
