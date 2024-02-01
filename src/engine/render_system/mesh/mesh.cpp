@@ -47,6 +47,22 @@ MeshSurface::MeshSurface(std::vector<float> vertex_data, std::vector<unsigned in
 		offset += attrib.get_data_size();
 	}
 }
+Mesh::Mesh(std::filesystem::path file)
+{
+	Assimp::Importer importer;
+	auto scene = importer.ReadFile(file.c_str(),
+								   aiProcess_Triangulate |
+									   aiProcess_FlipUVs |
+									   aiProcess_OptimizeMeshes |
+									   aiProcess_GenNormals);
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	{
+		std::cout << "Error! Failed to load model file from: " << file << std::endl
+				  << "\tError:" << importer.GetErrorString() << std::endl;
+		return;
+	}
+	//
+}
 
 MeshSurface::~MeshSurface()
 {
@@ -66,7 +82,7 @@ void MeshSurface::render(RenderContext ctx)
 	// 	glEnableVertexAttribArray(i);
 	// }
 
-	material->bind();
+	material->bind(ctx);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, 0);
 	material->unbind();

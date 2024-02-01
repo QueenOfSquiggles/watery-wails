@@ -1,34 +1,31 @@
-#include "includes/blinn-phong.shader"
+#define NR_POINT_LIGHTS 4
 
-in VertexData vertex;
+#include "includes/fragment_prefix.shader"
+#include "includes/lights.shader"
 
-uniform Environment environment;
-uniform Light light;
-uniform Material material;
-
-out vec4 FragColor;
+uniform DirectionalLight sun;
+uniform PointLight lights_point[NR_POINT_LIGHTS];
+uniform int lights_active = 1;
 
 void main()
 {
-	// vec4 surf_color = texture(material.albedo, vertex.uv);
-	// vec3 albedo = surf_color.rgb;
-	// vec3 n = texture(material.normal, vertex.uv).rgb;
-	// vec3 orm = texture(material.orm, vertex.uv).rgb;
+	vec4 surf_color = texture(material.albedo, vertex.uv);
+	vec3 albedo = surf_color.rgb;
+	vec3 n = normalize(texture(material.normal, vertex.uv).rgb);
+	vec3 orm = texture(material.orm, vertex.uv).rgb;
 
-	// // diffuse
-	// vec3 norm = normalize(vertex.normal);
-	// vec3 light_dir = normalize(-light.direction);
-	// vec3 diffuse = light.colour * albedo * max(dot(norm, light_dir), 0.0);
+	LightingContext ctx = build_context(
+		vertex.position,
+		normalize(vertex.normal),
+		normalize(environment.camera_position - vertex.position),
+		material.specular_strength,
+		orm.g
+	);
 
-	// vec3 view = normalize(environment.camera_position - vertex.position);
-	// vec3 reflect_dir = reflect(-light_dir, norm);
-	// vec3 specular = light.colour * (1.0 - orm.r) * pow(max(dot(view, reflect_dir), 0.0), 32);
+	vec3 lighting = environment.ambient_light;
 
-	// FragColor = vec4(
-	// 	environment.ambient_light + diffuse + specular
-	// 	, surf_color.a
-	// );
+	lighting += _get_directional_affect(sun, ctx);
+	lighting += _get_point_affect(lights_point[0], ctx);
 
-	FragColor = blinn_phong(environment, light, material);
-
+	FragColor = vec4((lighting * albedo), surf_color.a);
 }

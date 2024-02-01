@@ -4,7 +4,7 @@
 using namespace std;
 using namespace input;
 
-constexpr float SPIN_SPEED = 0.8f;
+constexpr float SPIN_SPEED = 0.3f;
 
 class MyObj : public GameObject
 {
@@ -77,7 +77,11 @@ int main()
 	//
 	//	CONVERT TO MODEL LOADING CODE
 	// + + + + + + + + + + + + + + + +
+	/*
+	float vertices[] = {
+		// positions          // normals           // texture coords
 
+	};*/
 	std::vector<float> vertices{// cube
 								-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
 								0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
@@ -85,30 +89,35 @@ int main()
 								0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
 								-0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
 								-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+
 								-0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
 								0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
 								0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
 								0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
 								-0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
 								-0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+
 								-0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 								-0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
 								-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 								-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 								-0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 								-0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
 								0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 								0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
 								0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 								0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 								0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 								0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
 								-0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
 								0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
 								0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
 								0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
 								-0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
 								-0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+
 								-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
 								0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
 								0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
@@ -163,12 +172,16 @@ int main()
 	obj->transform.position = {0, -1, 5};
 	obj->transform.scale = glm::vec3(3.0f);
 
+	auto light_ref = std::shared_ptr<GameObject>(new GameObject(floor_mesh));
+	light_ref->transform.scale = glm::vec3(0.5f);
+
 	auto floor = std::shared_ptr<GameObject>(new GameObject(floor_mesh));
 	floor->transform.scale = glm::vec3(512.0f);
 
 	engine->load_object(std::dynamic_pointer_cast<MyObj>(obj), "default");
 	engine->add_render_group("unlit");
 	engine->load_object(floor, "unlit");
+	engine->load_object(light_ref, "unlit");
 
 	// create pointers to needed resources
 	shared_ptr<Camera> cam = engine->window->renderer->camera;
@@ -176,10 +189,22 @@ int main()
 	float move_speed = 10.0f;
 	float turn_speed = glm::two_pi<float>() * 10.0f;
 
+	struct PointLight
+	{
+		glm::vec3 position;
+		glm::vec3 colour;
+		glm::vec3 attenuation_factors; // e.g. linear = vec3(0, 1, 0)
+	};
+
 	program->enable();
-	program->set_vec3("environment.ambient_light", glm::vec3(0.1f));
-	program->set_vec3("light.colour", {1, 1, 1});
-	program->set_vec3("light.direction", {.5, -1, -.5});
+	program->set_vec3("environment.ambient_light", glm::vec3(0.01f));
+	program->set_vec3("sun.direction", {.125, -1, 0});
+	program->set_vec3("sun.colour", glm::vec3(0.1));
+	program->set_vec3("lights_point[0].position", {0, 0, 0});
+	program->set_vec3("lights_point[0].colour", glm::vec3(1.0));
+	program->set_vec3("lights_point[0].attenuation_factors", {0, .2, 0});
+	program->set_float("material.specular_strength", 32.0f);
+	program->set_int("lights_active", 1);
 	program->disable();
 
 	auto game_loop = [=](double delta) mutable
@@ -206,6 +231,11 @@ int main()
 
 			engine->quit();
 		}
+		glm::vec3 n_pos = {-1, 1, sin(engine->current_time * .25) * 5.0 + 3.0};
+		light_ref->transform.position = n_pos;
+		program->enable();
+		program->set_vec3("lights_point[0].position", n_pos);
+		program->disable();
 	};
 	engine->start(game_loop);
 	return 0;

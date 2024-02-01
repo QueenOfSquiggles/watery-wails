@@ -46,30 +46,6 @@ const std::string SHADER_PREFIX = R"(
 
 #version 460 core
 
-// Data passed from the vertex pass to the fragment pass
-struct VertexData {
-	vec3 position;
-	vec3 normal;
-	vec2 uv;
-};
-// Data for the material of the rendered surface
-struct Material {
-	sampler2D albedo;
-	sampler2D normal;
-	sampler2D orm;
-};
-// The environmental data
-struct Environment {
-	vec3 ambient_light;
-	vec3 camera_position;
-	float time;
-};
-// Lighting information
-struct Light {
-	vec3 colour;
-	vec3 direction;
-};
-
 // begin your code
 // - - - - - - - -
 )";
@@ -88,9 +64,10 @@ ShaderComp ShaderProgram::load_program(ShaderType type, std::filesystem::path fi
 	}
 	std::string code_buffer;
 	std::string line;
+	unsigned int line_num;
 	while (getline(reader, line))
 	{
-		code_buffer += this->preprocess_shader_code(line + "\n", file);
+		code_buffer += this->preprocess_shader_code(line, file, ++line_num) + "\n";
 	}
 	reader.close();
 	code_buffer = SHADER_PREFIX + code_buffer;
@@ -125,17 +102,23 @@ ShaderComp ShaderProgram::load_program(ShaderType type, std::filesystem::path fi
 	return comp;
 }
 
-std::string ShaderProgram::preprocess_shader_code(std::string in_code, std::filesystem::path file)
+std::string ShaderProgram::preprocess_shader_code(std::string in_code, std::filesystem::path file, unsigned int line_number, unsigned int recursion_depth)
 { // preprocess on a line by line basis
+	if (recursion_depth > SHADER_PREPROCESS_RECURSION_MAX)
+	{
+		std::cerr << "Shader include preprocessing step reached a recursion depth greater than the maximum (" << SHADER_PREPROCESS_RECURSION_MAX << "). Either you have an incredibly complex shader program layout, or you have circular dependencies! Why don't you go on and check on that buddy boy chumn ol' pal?" << std::endl;
+		return "";
+	}
 	if (auto idx = in_code.find("#include"); idx != std::string::npos)
 	{ // parse include files
-		auto include_target = in_code.substr(idx + 1);
-		include_target = include_target.substr(include_target.find_first_not_of('"'), include_target.find_last_not_of('"'));
-		auto file_target = std::filesystem::relative(include_target, file);
+		auto include_target = in_code.substr(idx + 9);
+		include_target = include_target.substr(include_target.find_first_not_of('"'), include_target.find_last_of('"') - 1);
+		auto file_target = file.relative_path().parent_path();
+		file_target.append(include_target);
 		if (!std::filesystem::exists(file_target))
 		{
-			std::cerr << "PREPROCESSING ERROR [" << file.relative_path() << "] Included file does not exist : " << std::endl
-					  << "\tFile: \"" << file_target.relative_path() << "\"" << std::endl;
+			std::cerr << "PREPROCESSING ERROR [" << file.relative_path().string() << ":" << line_number << "] Included file does not exist : " << std::endl
+					  << "\tFile: " << file_target << std::endl;
 
 			return "";
 		}
@@ -147,10 +130,13 @@ std::string ShaderProgram::preprocess_shader_code(std::string in_code, std::file
 		}
 		std::string buffer;
 		std::string line;
+		unsigned int include_line_num = 0;
 		while (getline(reader, line))
 		{
-			buffer += line + "\n";
+
+			buffer += preprocess_shader_code(line, file_target, ++include_line_num, recursion_depth + 1) + "\n";
 		}
+		reader.close();
 		return buffer;
 	}
 

@@ -19,6 +19,8 @@ public:
 
 	static std::shared_ptr<Engine> instance;
 	double delta;
+	double current_time;
+
 	Engine();
 	Engine(const Engine &engine_copy) = delete;
 	void start(std::function<void(double)> game_tick_func);

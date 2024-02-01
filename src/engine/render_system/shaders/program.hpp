@@ -11,6 +11,10 @@
 #ifndef SHADER_LOG_SIZE
 #define SHADER_LOG_SIZE 512
 #endif
+
+#ifndef SHADER_PREPROCESS_RECURSION_MAX
+#define SHADER_PREPROCESS_RECURSION_MAX 1024
+#endif
 enum ShaderType
 {
 	VERTEX,
@@ -33,7 +37,7 @@ private:
 	unsigned int fragment;
 	unsigned int program;
 
-	std::string preprocess_shader_code(std::string in_code, std::filesystem::path file);
+	std::string preprocess_shader_code(std::string in_code, std::filesystem::path file, unsigned int line_number, unsigned int recursion_depth = 0);
 	ShaderComp load_program(ShaderType type, std::filesystem::path file);
 
 public:

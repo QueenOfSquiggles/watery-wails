@@ -6,6 +6,10 @@
 #include <vector>
 #include <glad/glad.h>
 #include <iostream>
+#include <memory>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 enum VertexDataAttributeType
 {
@@ -27,8 +31,9 @@ class MeshSurface
 	unsigned int VAO, VBO, EBO, attributes, index_count;
 
 public:
-	MeshSurface(std::vector<float> data, std::vector<unsigned int> indices, 
-	std::vector<VertexDataAttribute>attributes, std::shared_ptr<Material> p_material);
+	MeshSurface(std::vector<float> data, std::vector<unsigned int> indices,
+				std::vector<VertexDataAttribute> attributes, std::shared_ptr<Material> p_material);
+
 	~MeshSurface();
 	void render(RenderContext ctx);
 };
@@ -39,5 +44,6 @@ class Mesh
 
 public:
 	Mesh(std::vector<std::shared_ptr<MeshSurface>> p_surfaces);
+	Mesh(std::filesystem::path file);
 	void render(RenderContext ctx);
 };

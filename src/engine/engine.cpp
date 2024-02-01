@@ -58,9 +58,9 @@ void Engine::start(std::function<void(double)> game_tick_func)
 	delta = 0;
 	while (window->is_running())
 	{
-		double now = glfwGetTime();
-		delta = now - time;
-		time = now;
+		current_time = glfwGetTime();
+		delta = current_time - time;
+		time = current_time;
 		input->poll_input_events(window->get());
 		window->game_tick(delta);
 		if (game_tick_func)
