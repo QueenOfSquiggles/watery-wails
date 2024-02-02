@@ -1,6 +1,7 @@
 #include "engine/engine.hpp"
 #include <iostream>
 #include <memory>
+#include <engine/render_system/resource_management/resource_factory.hpp>
 using namespace std;
 using namespace input;
 
@@ -12,9 +13,9 @@ public:
 	MyObj(shared_ptr<Mesh> mesh) : GameObject(mesh) {}
 	void render(RenderContext ctx) override
 	{
-		transform.rotation.x += glm::radians(45.0f) * ctx.delta * SPIN_SPEED;
+		// transform.rotation.x += glm::radians(45.0f) * ctx.delta * SPIN_SPEED;
 		transform.rotation.y += glm::radians(35.0f) * ctx.delta * SPIN_SPEED;
-		transform.rotation.z += glm::radians(15.0f) * ctx.delta * SPIN_SPEED;
+		// transform.rotation.z += glm::radians(15.0f) * ctx.delta * SPIN_SPEED;
 
 		GameObject::render(ctx);
 	}
@@ -25,6 +26,7 @@ int main()
 	Engine *engine = new Engine();
 
 	map<string, vector<InputMapping>> mappings = {
+		// TODO: load this data from a file? Maybe CFG or TOML??
 		{
 			"forward",
 			{
@@ -74,132 +76,18 @@ int main()
 	};
 
 	engine->input->register_actions(mappings);
-	//
-	//	CONVERT TO MODEL LOADING CODE
-	// + + + + + + + + + + + + + + + +
-	/*
-	float vertices[] = {
-		// positions          // normals           // texture coords
-
-	};*/
-	std::vector<float> vertices{// cube
-								-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-								0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
-								0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
-								0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
-								-0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
-								-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-
-								-0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-								0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-								0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-								0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-								-0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-								-0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-
-								-0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-								-0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-								-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-								-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-								-0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-								-0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-
-								0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-								0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-								0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-								0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-								0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-								0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-
-								-0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-								0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
-								0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-								0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-								-0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-								-0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-
-								-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-								0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-								0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-								0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-								-0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-								-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f};
-
-	std::vector<unsigned int> indices{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35};
-
-	auto ptr_wall_albedo = new Texture("res/texture/stone_tiles_diff_1k.jpg");
-	auto ptr_wall_orm = new Texture("res/texture/stone_tiles_arm_1k.jpg");
-	auto ptr_wall_normal = new Texture("res/texture/stone_tiles_nor_gl_1k.jpg");
-
-	auto ptr_floor = new Texture("./res/testing/textures/texture_01.png");
-	auto wall_albedo = shared_ptr<Texture>(ptr_wall_albedo);
-	auto wall_normal = shared_ptr<Texture>(ptr_wall_normal);
-	auto wall_orm = shared_ptr<Texture>(ptr_wall_orm);
-	auto floor_tex = shared_ptr<Texture>(ptr_floor);
-
-	auto program = engine->window->renderer->get_program_for("default");
-
-	if (program == nullptr)
-	{
-		cerr << "Failed to load default shader program!" << endl;
-	}
-	auto mat = shared_ptr<Material>(new Material(program, wall_albedo, wall_normal, wall_orm));
-	auto floor_mat = shared_ptr<Material>(new Material(program, floor_tex, floor_tex, floor_tex));
-
-	std::vector<VertexDataAttribute>
-		attribs{
-			{VertexDataAttributeType::FLOAT, 3}, // position
-			{VertexDataAttributeType::FLOAT, 3}, // normal
-			{VertexDataAttributeType::FLOAT, 2}, // uvs
-		};
-
-	auto surf = shared_ptr<MeshSurface>(new MeshSurface(vertices, indices, attribs, mat));
-	auto floor_surf = shared_ptr<MeshSurface>(new MeshSurface(vertices, indices, attribs, floor_mat));
-
-	auto mesh = shared_ptr<Mesh>(new Mesh(
-		std::vector<shared_ptr<MeshSurface>>{
-			surf,
-		}));
-	auto floor_mesh = shared_ptr<Mesh>(new Mesh(
-		std::vector<shared_ptr<MeshSurface>>{
-			floor_surf,
-		}));
-	// + + + + + + + + + + + + + + + +
-	// /CONVERT TO MODEL LOADING CODE
-	//
-
+	engine->input->register_from_toml("res/actions.toml");
+	auto mesh = ResourceFactory::load_mesh("res/testing/meshes/my_export/gltf/test_survival_backpack.gltf");
 	auto obj = std::shared_ptr<MyObj>(new MyObj(mesh));
-	obj->transform.position = {0, -1, 5};
-	obj->transform.scale = glm::vec3(3.0f);
-
-	auto light_ref = std::shared_ptr<GameObject>(new GameObject(floor_mesh));
-	light_ref->transform.scale = glm::vec3(0.5f);
-
-	auto floor = std::shared_ptr<GameObject>(new GameObject(floor_mesh));
-	floor->transform.scale = glm::vec3(512.0f);
+	obj->transform.position = {0, 0, 3};
 
 	engine->load_object(std::dynamic_pointer_cast<MyObj>(obj), "default");
-	engine->add_render_group("unlit");
-	engine->load_object(floor, "unlit");
-	engine->load_object(light_ref, "unlit");
 
-	// create pointers to needed resources
-	shared_ptr<Camera> cam = engine->window->renderer->camera;
-	shared_ptr<Input> input = engine->input;
-	float move_speed = 10.0f;
-	float turn_speed = glm::two_pi<float>() * 10.0f;
-
-	struct PointLight
-	{
-		glm::vec3 position;
-		glm::vec3 colour;
-		glm::vec3 attenuation_factors; // e.g. linear = vec3(0, 1, 0)
-	};
-
+	auto program = engine->window->renderer->get_program_for("default");
 	program->enable();
-	program->set_vec3("environment.ambient_light", glm::vec3(0.01f));
+	program->set_vec3("environment.ambient_light", glm::vec3(0.5f));
 	program->set_vec3("sun.direction", {.125, -1, 0});
-	program->set_vec3("sun.colour", glm::vec3(0.1));
+	program->set_vec3("sun.colour", glm::vec3(1));
 	program->set_vec3("lights_point[0].position", {0, 0, 0});
 	program->set_vec3("lights_point[0].colour", glm::vec3(1.0));
 	program->set_vec3("lights_point[0].attenuation_factors", {0, .2, 0});
@@ -207,8 +95,15 @@ int main()
 	program->set_int("lights_active", 1);
 	program->disable();
 
+	// create pointers to needed resources
+	shared_ptr<Camera> cam = engine->window->renderer->camera;
+	shared_ptr<Input> input = engine->input;
+	float move_speed = 10.0f;
+	float turn_speed = glm::two_pi<float>() * 10.0f;
+
 	auto game_loop = [=](double delta) mutable
 	{
+		obj->transform.scale = glm::vec3(1.0);
 		glm::vec2 move = input->get_action_vector("left", "right", "back", "forward");
 
 		if (glm::length(move) > 0.2f)
@@ -232,7 +127,6 @@ int main()
 			engine->quit();
 		}
 		glm::vec3 n_pos = {-1, 1, sin(engine->current_time * .25) * 5.0 + 3.0};
-		light_ref->transform.position = n_pos;
 		program->enable();
 		program->set_vec3("lights_point[0].position", n_pos);
 		program->disable();

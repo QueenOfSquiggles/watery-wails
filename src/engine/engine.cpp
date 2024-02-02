@@ -38,7 +38,12 @@ Engine::Engine()
 	glfwSetFramebufferSizeCallback(window->get(), window_resize_callback);
 	Engine::instance = std::shared_ptr<Engine>(this);
 	input = std::shared_ptr<input::Input>(new input::Input());
+
+	// gl modes
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+
 	window_resize_callback(window->get(), 800, 600);
 }
 

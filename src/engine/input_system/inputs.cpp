@@ -32,6 +32,19 @@ void Input::register_actions(std::map<std::string, std::vector<InputMapping>> ma
 	}
 }
 
+void Input::register_from_toml(std::filesystem::path toml_file)
+{
+	// reference: https://github.com/ToruNiina/toml11
+	auto data = toml::parse(toml_file.c_str());
+	auto table = data.as_table();
+	for (auto entry : table)
+	{
+		auto key = entry.first;
+		auto value = entry.second;
+		std::cout << "Found TOML key-value-pair::  " << key << " = " << value << std::endl;
+	}
+}
+
 void Input::poll_input_events(GLFWwindow *window)
 {
 	for (auto action : mappings)

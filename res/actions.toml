@@ -1,0 +1,7 @@
+forward = ["", ""]
+back = ["", ""]
+left = ["", ""]
+right = ["", ""]
+
+[category]
+something = "or other"

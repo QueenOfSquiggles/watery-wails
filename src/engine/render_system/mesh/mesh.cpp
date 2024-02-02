@@ -51,10 +51,10 @@ MeshSurface::MeshSurface(std::vector<float> vertex_data, std::vector<unsigned in
 }
 MeshSurface::~MeshSurface()
 {
-	std::cout << "Deleting mesh surface:" << std::endl
-			  << "   VBO=" << VBO << std::endl
-			  << "   EBO=" << EBO << std::endl
-			  << "   VAO=" << VAO << std::endl;
+	// std::cout << "Deleting mesh surface:" << std::endl
+	// 		  << "   VBO=" << VBO << std::endl
+	// 		  << "   EBO=" << EBO << std::endl
+	// 		  << "   VAO=" << VAO << std::endl;
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 	glDeleteVertexArrays(1, &VAO);
@@ -62,20 +62,10 @@ MeshSurface::~MeshSurface()
 
 void MeshSurface::render(RenderContext ctx)
 {
-	// for (unsigned int i = 0; i < attributes; i++)
-	// {
-	// 	glEnableVertexAttribArray(i);
-	// }
-
 	material->bind(ctx);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, 0);
 	material->unbind();
-
-	// for (unsigned int i = 0; i < attributes; i++)
-	// {
-	// 	glDisableVertexAttribArray(i);
-	// }
 	glBindVertexArray(0);
 }
 Mesh::Mesh(std::vector<std::shared_ptr<MeshSurface>> p_surfaces) : surfaces(p_surfaces)
@@ -92,18 +82,24 @@ void Mesh::render(RenderContext ctx)
 
 Mesh::Mesh(std::filesystem::path file)
 {
-	Assimp::Importer importer;
-	auto scene = importer.ReadFile(file.c_str(),
-								   aiProcessPreset_TargetRealtime_Quality |
-									   aiProcess_Triangulate |
-									   aiProcess_FlipUVs |
-									   aiProcess_OptimizeMeshes |
-									   aiProcess_GenNormals |
-									   aiProcess_GenUVCoords);
-	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	auto abs_path = std::filesystem::absolute(file);
+	// std::cout << "Loading model file: " << abs_path << std::endl;
+	if (!std::filesystem::exists(file))
 	{
-		std::cout << "Error! Failed to load model file from: " << file << std::endl
-				  << "\tError:" << importer.GetErrorString() << std::endl;
+		std::cout << "Does not exist!!! (relative?)" << file << std::endl;
+		return;
+	}
+	Assimp::Importer importer;
+	auto scene = importer.ReadFile(
+		abs_path.c_str(), 0);
+	// aiProcess_Triangulate);
+
+	auto err_string = std::string(importer.GetErrorString());
+	if (!err_string.empty())
+	{
+		std::cout << "Error! Failed to load model file" << std::endl
+				  << "\tFile: " << abs_path << std::endl
+				  << "\tError:" << err_string << std::endl;
 		return;
 	}
 	process_assimp_node(scene->mRootNode, scene, file);
@@ -111,6 +107,7 @@ Mesh::Mesh(std::filesystem::path file)
 
 void Mesh::process_assimp_node(aiNode *node, const aiScene *scene, std::filesystem::path file)
 {
+	// std::cout << "Loading model node: " << node->mName.C_Str() << std::endl;
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
@@ -126,6 +123,7 @@ void Mesh::process_assimp_node(aiNode *node, const aiScene *scene, std::filesyst
 
 MeshSurfaceDataContainer Mesh::load_surf_data_container(aiMesh *mesh, const aiScene *scene, std::filesystem::path file)
 {
+	// std::cout << "Loading model mesh: " << mesh->mName.C_Str() << std::endl;
 	MeshSurfaceDataContainer data;
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 	{
@@ -179,12 +177,17 @@ MeshSurfaceDataContainer Mesh::load_surf_data_container(aiMesh *mesh, const aiSc
 	{
 		data.material = load_material(scene->mMaterials[mesh->mMaterialIndex], file);
 	}
+	data.attributes = {
+		VertexDataAttribute(VertexDataAttributeType::FLOAT, 3), // position
+		VertexDataAttribute(VertexDataAttributeType::FLOAT, 3), // normal
+		VertexDataAttribute(VertexDataAttributeType::FLOAT, 2), // uv
+	};
 
 	return data;
 }
 std::shared_ptr<Material> Mesh::load_material(aiMaterial *mat, std::filesystem::path file)
 {
-
+	// std::cout << "Loading material: " << mat->GetName().C_Str() << std::endl;
 	std::vector<std::shared_ptr<Texture>> textures;
 	std::vector<aiTextureType> types = {aiTextureType_DIFFUSE, aiTextureType_NORMALS, aiTextureType_SPECULAR};
 	for (auto type : types)
@@ -199,6 +202,7 @@ std::shared_ptr<Material> Mesh::load_material(aiMaterial *mat, std::filesystem::
 		aiString str;
 		mat->GetTexture(aiTextureType_DIFFUSE, 0, &str);
 		auto path = file.parent_path();
+		// std::cout << "Loading material texture: " << path << std::endl;
 		path.append(str.C_Str());
 		textures.push_back(ResourceFactory::load_texture(path));
 	}

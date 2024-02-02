@@ -5,6 +5,10 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <memory>
+#include <filesystem>
+#include <iostream>
+#include <toml11/toml.hpp>
+
 namespace input
 {
 	enum Key
@@ -152,7 +156,7 @@ namespace input
 
 	public:
 		Input();
-
+		void register_from_toml(std::filesystem::path toml_file);
 		void register_action(std::string action, InputMapping mapping);
 		void register_actions(std::map<std::string, std::vector<InputMapping>> mappings);
 		void poll_input_events(GLFWwindow *window);

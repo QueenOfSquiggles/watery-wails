@@ -40,11 +40,11 @@ Texture::Texture(std::string file)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, this->width, this->height, 0, tex_channels, GL_UNSIGNED_BYTE, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	stbi_image_free(data);
-	std::cout << "Created texture " << this->id << std::endl;
+	// std::cout << "Created texture " << this->id << std::endl;
 }
 Texture::~Texture()
 {
-	std::cout << "Deleting texture: " << this->id << std::endl;
+	// std::cout << "Deleting texture: " << this->id << std::endl;
 	glDeleteTextures(1, &this->id);
 }
 
