@@ -1,4 +1,6 @@
 #include "mesh.hpp"
+#include "../resource_management/resource_factory.hpp"
+
 VertexDataAttribute::VertexDataAttribute(VertexDataAttributeType p_type, unsigned int p_size) : type(p_type), size(p_size) {}
 unsigned int VertexDataAttribute::get_data_size()
 {
@@ -47,23 +49,6 @@ MeshSurface::MeshSurface(std::vector<float> vertex_data, std::vector<unsigned in
 		offset += attrib.get_data_size();
 	}
 }
-Mesh::Mesh(std::filesystem::path file)
-{
-	Assimp::Importer importer;
-	auto scene = importer.ReadFile(file.c_str(),
-								   aiProcess_Triangulate |
-									   aiProcess_FlipUVs |
-									   aiProcess_OptimizeMeshes |
-									   aiProcess_GenNormals);
-	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-	{
-		std::cout << "Error! Failed to load model file from: " << file << std::endl
-				  << "\tError:" << importer.GetErrorString() << std::endl;
-		return;
-	}
-	//
-}
-
 MeshSurface::~MeshSurface()
 {
 	std::cout << "Deleting mesh surface:" << std::endl
@@ -103,4 +88,120 @@ void Mesh::render(RenderContext ctx)
 	{
 		surf->render(ctx);
 	}
+}
+
+Mesh::Mesh(std::filesystem::path file)
+{
+	Assimp::Importer importer;
+	auto scene = importer.ReadFile(file.c_str(),
+								   aiProcessPreset_TargetRealtime_Quality |
+									   aiProcess_Triangulate |
+									   aiProcess_FlipUVs |
+									   aiProcess_OptimizeMeshes |
+									   aiProcess_GenNormals |
+									   aiProcess_GenUVCoords);
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	{
+		std::cout << "Error! Failed to load model file from: " << file << std::endl
+				  << "\tError:" << importer.GetErrorString() << std::endl;
+		return;
+	}
+	process_assimp_node(scene->mRootNode, scene, file);
+}
+
+void Mesh::process_assimp_node(aiNode *node, const aiScene *scene, std::filesystem::path file)
+{
+	for (unsigned int i = 0; i < node->mNumMeshes; i++)
+	{
+		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+		auto data = load_surf_data_container(mesh, scene, file);
+		auto surf = std::shared_ptr<MeshSurface>(new MeshSurface(data.vertices, data.indices, data.attributes, data.material));
+		this->surfaces.push_back(surf);
+	}
+	for (unsigned int i = 0; i < node->mNumChildren; i++)
+	{
+		process_assimp_node(node->mChildren[i], scene, file);
+	}
+}
+
+MeshSurfaceDataContainer Mesh::load_surf_data_container(aiMesh *mesh, const aiScene *scene, std::filesystem::path file)
+{
+	MeshSurfaceDataContainer data;
+	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+	{
+		Vertex vertex;
+		vertex.position = {
+			mesh->mVertices[i].x,
+			mesh->mVertices[i].y,
+			mesh->mVertices[i].z,
+		};
+		vertex.normal = {
+			mesh->mNormals[i].x,
+			mesh->mNormals[i].y,
+			mesh->mNormals[i].z,
+		};
+		if (mesh->mTextureCoords[0])
+		{
+			vertex.uv = {
+				mesh->mTextureCoords[0][i].x,
+				mesh->mTextureCoords[0][i].y,
+			};
+		}
+		else
+		{
+			vertex.uv = {0, 0};
+		}
+
+		std::vector<float> vertex_floats = {
+			vertex.position.x,
+			vertex.position.y,
+			vertex.position.z,
+			vertex.normal.x,
+			vertex.normal.y,
+			vertex.normal.z,
+			vertex.uv.x,
+			vertex.uv.y,
+		};
+
+		// append vertex_floats (Why The Fuck isn't there an append array type function??)
+		data.vertices.insert(data.vertices.end(), vertex_floats.begin(), vertex_floats.end());
+	}
+
+	for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+	{
+		auto face = mesh->mFaces[i];
+		for (unsigned int j = 0; j < face.mNumIndices; j++)
+		{
+			data.indices.push_back(face.mIndices[j]);
+		}
+	}
+	if (mesh->mMaterialIndex >= 0)
+	{
+		data.material = load_material(scene->mMaterials[mesh->mMaterialIndex], file);
+	}
+
+	return data;
+}
+std::shared_ptr<Material> Mesh::load_material(aiMaterial *mat, std::filesystem::path file)
+{
+
+	std::vector<std::shared_ptr<Texture>> textures;
+	std::vector<aiTextureType> types = {aiTextureType_DIFFUSE, aiTextureType_NORMALS, aiTextureType_SPECULAR};
+	for (auto type : types)
+	{
+		auto n_of_type = mat->GetTextureCount(type);
+		if (n_of_type <= 0)
+		{
+			// load default fallback texture (going to cause troubles but shouldn't crash)
+			textures.push_back(ResourceFactory::load_texture("res/testing/textures/texture_01.png"));
+			continue;
+		}
+		aiString str;
+		mat->GetTexture(aiTextureType_DIFFUSE, 0, &str);
+		auto path = file.parent_path();
+		path.append(str.C_Str());
+		textures.push_back(ResourceFactory::load_texture(path));
+	}
+
+	return std::shared_ptr<Material>(new Material(textures[0], textures[1], textures[2]));
 }

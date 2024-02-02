@@ -10,6 +10,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <glm/glm.hpp>
 
 enum VertexDataAttributeType
 {
@@ -23,6 +24,20 @@ struct VertexDataAttribute
 	unsigned int get_data_size();
 
 	VertexDataAttribute(VertexDataAttributeType p_type, unsigned int p_size);
+};
+struct Vertex
+{
+	glm::vec3 position;
+	glm::vec3 normal;
+	glm::vec2 uv;
+};
+
+struct MeshSurfaceDataContainer
+{
+	std::vector<float> vertices;
+	std::vector<unsigned int> indices;
+	std::vector<VertexDataAttribute> attributes;
+	std::shared_ptr<Material> material;
 };
 
 class MeshSurface
@@ -41,6 +56,9 @@ public:
 class Mesh
 {
 	std::vector<std::shared_ptr<MeshSurface>> surfaces;
+	void process_assimp_node(aiNode *node, const aiScene *scene, std::filesystem::path file);
+	MeshSurfaceDataContainer load_surf_data_container(aiMesh *mesh, const aiScene *scene, std::filesystem::path file);
+	std::shared_ptr<Material> load_material(aiMaterial *mat, std::filesystem::path file);
 
 public:
 	Mesh(std::vector<std::shared_ptr<MeshSurface>> p_surfaces);
