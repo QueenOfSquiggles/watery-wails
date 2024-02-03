@@ -1,3 +1,6 @@
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
 #include "window.hpp"
 
 using namespace std;
@@ -32,12 +35,26 @@ void GameWindow::on_resize(int width, int height)
 
 void GameWindow::game_tick(double delta)
 {
+	bool draw_imgui = (bool)debug_draw;
+	glfwPollEvents();
+	if (draw_imgui)
+	{
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		debug_draw();
+		ImGui::Render();
+	}
+
 	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	this->renderer->render(delta, glfwGetTime());
 
+	if (draw_imgui)
+	{
+		ImGui_ImplOpenGL3_RenderDrawData((ImDrawData *)ImGui::GetDrawData());
+	}
 	glfwSwapBuffers(window);
-	glfwPollEvents();
 }
 
 void GameWindow::run_game_loop_synchronous()

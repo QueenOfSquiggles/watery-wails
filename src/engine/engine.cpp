@@ -1,3 +1,7 @@
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+
 #include "engine.hpp"
 
 using namespace std;
@@ -38,13 +42,25 @@ Engine::Engine()
 	glfwSetFramebufferSizeCallback(window->get(), window_resize_callback);
 	Engine::instance = std::shared_ptr<Engine>(this);
 	input = std::shared_ptr<input::Input>(new input::Input());
-
+	glfwSetErrorCallback(glfw_error_callback);
 	// gl modes
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
 	window_resize_callback(window->get(), 800, 600);
+
+	// Create IMGUI
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	auto io = ImGui::GetIO();
+	// (void)io; // from the example?? Why???
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplGlfw_InitForOpenGL(window->get(), true);
+	ImGui_ImplOpenGL3_Init("#version 460 core");
 }
 
 void Engine::load_object(std::shared_ptr<GameObject> obj, std::string render_group)
@@ -73,6 +89,16 @@ void Engine::start(std::function<void(double)> game_tick_func)
 		else
 			std::cout << "INVALID GAME LOOP!!!!!" << std::endl;
 	}
+	// // Cleanup
+	// std::cout << "Cleaning up IMGUI" << std::endl;
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+}
+
+void Engine::quit()
+{
+	window->close();
 }
 
 void window_resize_callback(GLFWwindow *window, int width, int height)
@@ -85,7 +111,8 @@ void window_resize_callback(GLFWwindow *window, int width, int height)
 	}
 	Engine::instance->window->on_resize(width, height);
 }
-void Engine::quit()
+
+void glfw_error_callback(int error, const char *description)
 {
-	window->close();
+	std::cout << "GLFW Error: #" << error << ":\r" << description << std::endl;
 }

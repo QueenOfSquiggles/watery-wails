@@ -30,3 +30,4 @@ public:
 };
 
 void window_resize_callback(GLFWwindow *window, int width, int height);
+void glfw_error_callback(int error, const char *description);

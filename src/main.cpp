@@ -1,7 +1,13 @@
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+#define USE_IMGUI_RENDER
 #include "engine/engine.hpp"
+
 #include <iostream>
 #include <memory>
 #include <engine/render_system/resource_management/resource_factory.hpp>
+
 using namespace std;
 using namespace input;
 
@@ -131,6 +137,17 @@ int main()
 		program->set_vec3("lights_point[0].position", n_pos);
 		program->disable();
 	};
+
+	bool show_demo_window = true;
+	auto debug_draw = [=]() mutable
+	{
+		if (show_demo_window)
+		{
+			ImGui::ShowDemoWindow(&show_demo_window);
+		}
+	};
+	engine->window->debug_draw = debug_draw;
 	engine->start(game_loop);
+
 	return 0;
 }

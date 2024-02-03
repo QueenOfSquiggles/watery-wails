@@ -9,6 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include <functional>
 
 class GameWindow
 {
@@ -17,6 +18,7 @@ class GameWindow
 public:
 	int width, height;
 	std::shared_ptr<Renderer> renderer;
+	std::function<void()> debug_draw;
 	GameWindow(int width, int height, std::string title);
 	~GameWindow();
 
