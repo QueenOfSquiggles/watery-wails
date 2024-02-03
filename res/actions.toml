@@ -1,7 +1,33 @@
-forward = ["", ""]
-back = ["", ""]
-left = ["", ""]
-right = ["", ""]
+# override values
+[forward]
+# key = []
+# mouse = []
+# gamepad = []
 
-[category]
-something = "or other"
+[back]
+
+[left]
+
+[right]
+
+
+[default]
+[default.forward]
+key = []
+mouse = []
+gamepad = []
+
+[default.back]
+key = []
+mouse = []
+gamepad = []
+
+[default.left]
+key = []
+mouse = []
+gamepad = []
+
+[default.right]
+key = []
+mouse = []
+gamepad = []
