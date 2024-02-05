@@ -21,6 +21,7 @@ GameWindow::GameWindow(int width, int height, std::string title)
 
 GameWindow::~GameWindow()
 {
+	glfwDestroyWindow(window);
 	glfwTerminate();
 	// delete window;
 }

@@ -1,20 +1,12 @@
-struct DirectionalLight {
-	vec3 direction;
-	vec3 colour;
-};
-
-struct PointLight {
-	vec3 position;
-	vec3 colour;
-	vec3 attenuation_factors; // e.g. linear = vec3(0, 1, 0)
-};
+#include "components/light_structs.shader"
 
 struct LightingContext {
 	vec3 vertex;
+	vec3 albedo;
 	vec3 normal;
 	vec3 view_dir;
+	vec3 orm;
 	float shiny_factor;
-	float roughness;
 };
 
 vec3 _get_point_affect(PointLight light, LightingContext ctx)
@@ -30,8 +22,8 @@ vec3 _get_point_affect(PointLight light, LightingContext ctx)
 		(light.attenuation_factors.z * dist * dist);
 	atten = clamp(atten, 0.0, 1.0);
 
-	vec3 diffuse_colour = light.colour * diffuse * atten;
-	vec3 specular_colour = light.colour * spec * atten;
+	vec3 diffuse_colour = ctx.albedo * light.colour * diffuse * atten;
+	vec3 specular_colour = ctx.albedo * light.colour * spec * atten * (1.0 - ctx.orm.y);
 
 	return diffuse_colour + specular_colour;
 }
@@ -42,19 +34,20 @@ vec3 _get_directional_affect(DirectionalLight light, LightingContext ctx)
 	float diffuse = max(dot(ctx.normal, light_dir), 0.0);
 	vec3 reflect_dir = reflect(-light_dir, ctx.normal);
 	float spec = pow(max(dot(ctx.view_dir, reflect_dir), 0.0), ctx.shiny_factor);
-	vec3 diffuse_colour = light.colour * diffuse;
-	vec3 specular_colour = light.colour * spec * (1.0 - ctx.roughness);
+	vec3 diffuse_colour = ctx.albedo * light.colour * diffuse;
+	vec3 specular_colour = ctx.albedo * light.colour * spec * (1.0 - ctx.orm.y);
 	return diffuse_colour + specular_colour;
 }
 
-LightingContext build_context(vec3 vertex, vec3 normal, vec3 view_dir, float shiny_factor, float roughness) 
+LightingContext build_context(vec3 vertex, vec3 normal, vec3 view_dir, float shiny_factor, vec3 orm, vec3 albedo)
 {
 	LightingContext ctx;
 	ctx.vertex = vertex;
 	ctx.normal = normal;
 	ctx.view_dir = view_dir;
 	ctx.shiny_factor = shiny_factor;
-	ctx.roughness = roughness;
+	ctx.orm = orm;
+	ctx.albedo = albedo
 	return ctx;
 }
 

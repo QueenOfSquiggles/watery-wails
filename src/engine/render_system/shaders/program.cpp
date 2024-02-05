@@ -37,7 +37,7 @@ ShaderProgram::ShaderProgram(std::filesystem::path vert, std::filesystem::path f
 
 ShaderProgram::~ShaderProgram()
 {
-	std::cout << "Deleting shader program: " << program << std::endl;
+	// std::cout << "Deleting shader program: " << program << std::endl;
 	glDeleteProgram(this->program);
 }
 

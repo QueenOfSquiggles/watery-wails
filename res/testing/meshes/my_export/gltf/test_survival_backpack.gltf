@@ -2044,14 +2044,14 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/jpeg",
+			"mimeType":"image/png",
 			"name":"Scene_-_Root_normal",
-			"uri":"Scene_-_Root_normal.jpg"
+			"uri":"Scene_-_Root_normal.png"
 		},
 		{
-			"mimeType":"image/jpeg",
+			"mimeType":"image/png",
 			"name":"Scene_-_Root_metallicRoughness",
-			"uri":"Scene_-_Root_metallicRoughness.jpg"
+			"uri":"Scene_-_Root_metallicRoughness.png"
 		},
 		{
 			"mimeType":"image/jpeg",

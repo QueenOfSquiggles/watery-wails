@@ -1,2 +1,17 @@
 [forward]
-default = []
+default = ["key_w", "key_up"]
+
+[back]
+default = ["key_s", "key_down"]
+
+[left]
+default = ["key_a", "key_left"]
+
+[right]
+default = ["key_d", "key_right"]
+
+[rotate_left]
+default = ["key_q", "key_x"]
+
+[rotate_right]
+default = ["key_e", "key_z"]

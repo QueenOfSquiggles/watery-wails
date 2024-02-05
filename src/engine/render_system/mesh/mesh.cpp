@@ -91,7 +91,7 @@ Mesh::Mesh(std::filesystem::path file)
 	}
 	Assimp::Importer importer;
 	auto scene = importer.ReadFile(
-		abs_path.c_str(), 0);
+		abs_path.c_str(), aiProcessPreset_TargetRealtime_Fast | aiProcess_CalcTangentSpace);
 	// aiProcess_Triangulate);
 
 	auto err_string = std::string(importer.GetErrorString());
@@ -149,6 +149,26 @@ MeshSurfaceDataContainer Mesh::load_surf_data_container(aiMesh *mesh, const aiSc
 		{
 			vertex.uv = {0, 0};
 		}
+		if (mesh->HasTangentsAndBitangents())
+		{
+			// collect tan & bitan
+			vertex.tangent = {
+				mesh->mTangents[i].x,
+				mesh->mTangents[i].y,
+				mesh->mTangents[i].z,
+			};
+			vertex.bitangent = {
+				mesh->mBitangents[i].x,
+				mesh->mBitangents[i].y,
+				mesh->mBitangents[i].z,
+			};
+		}
+		else
+		{
+			// this really shouldn't happen but just in case....
+			vertex.tangent = {1, 0, 0};
+			vertex.bitangent = {0, 1, 0};
+		}
 
 		std::vector<float> vertex_floats = {
 			vertex.position.x,
@@ -159,6 +179,12 @@ MeshSurfaceDataContainer Mesh::load_surf_data_container(aiMesh *mesh, const aiSc
 			vertex.normal.z,
 			vertex.uv.x,
 			vertex.uv.y,
+			vertex.tangent.x,
+			vertex.tangent.y,
+			vertex.tangent.z,
+			vertex.bitangent.x,
+			vertex.bitangent.y,
+			vertex.bitangent.z,
 		};
 
 		// append vertex_floats (Why The Fuck isn't there an append array type function??)
@@ -181,6 +207,8 @@ MeshSurfaceDataContainer Mesh::load_surf_data_container(aiMesh *mesh, const aiSc
 		VertexDataAttribute(VertexDataAttributeType::FLOAT, 3), // position
 		VertexDataAttribute(VertexDataAttributeType::FLOAT, 3), // normal
 		VertexDataAttribute(VertexDataAttributeType::FLOAT, 2), // uv
+		VertexDataAttribute(VertexDataAttributeType::FLOAT, 3), // tangent
+		VertexDataAttribute(VertexDataAttributeType::FLOAT, 3), // bitangent
 	};
 
 	return data;

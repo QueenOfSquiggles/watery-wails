@@ -50,6 +50,8 @@ Engine::Engine()
 
 	window_resize_callback(window->get(), 800, 600);
 
+	glfwSwapInterval(0); // requests a disabled VSync
+
 	// Create IMGUI
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -73,15 +75,28 @@ void Engine::add_render_group(std::string name)
 	window->renderer->register_batch(name, std::shared_ptr<ShaderProgram>(new ShaderProgram("res/shader/" + name + ".vert", "res/shader/" + name + ".frag")));
 }
 
-void Engine::start(std::function<void(double)> game_tick_func)
+void Engine::start()
 {
 	double time = glfwGetTime();
 	delta = 0;
+	double elapsed_fps_time = 0;
+	unsigned int elapsed_fps_frames = 0;
 	while (window->is_running())
 	{
 		current_time = glfwGetTime();
 		delta = current_time - time;
 		time = current_time;
+
+		elapsed_fps_time += delta;
+		elapsed_fps_frames++;
+
+		if (elapsed_fps_time >= 1.0)
+		{
+			FPS = elapsed_fps_frames;
+			elapsed_fps_frames = 0;
+			elapsed_fps_time = 0.0;
+		}
+
 		input->poll_input_events(window->get());
 		window->game_tick(delta);
 		if (game_tick_func)
@@ -103,7 +118,7 @@ void Engine::quit()
 
 void window_resize_callback(GLFWwindow *window, int width, int height)
 {
-	std::cout << "Window resized: " << width << "x" << height << std::endl;
+	// std::cout << "Window resized: " << width << "x" << height << std::endl;
 	if (Engine::instance == nullptr)
 	{
 		std::cerr << "Failed to handle window resize callback!!!!" << std::endl;

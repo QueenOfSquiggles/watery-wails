@@ -10,20 +10,22 @@
 #include <stb_image.h>
 #include <memory>
 #include <functional>
+#include <deque>
 
 class Engine
 {
 public:
 	std::shared_ptr<GameWindow> window;
 	std::shared_ptr<input::Input> input;
-
 	static std::shared_ptr<Engine> instance;
+	std::function<void(double)> game_tick_func;
+	unsigned int FPS = 0;
 	double delta;
 	double current_time;
 
 	Engine();
 	Engine(const Engine &engine_copy) = delete;
-	void start(std::function<void(double)> game_tick_func);
+	void start();
 	void load_object(std::shared_ptr<GameObject> obj, std::string render_group = "default");
 	void add_render_group(std::string name);
 	void quit();

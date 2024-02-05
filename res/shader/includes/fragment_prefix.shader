@@ -24,6 +24,7 @@ struct VertexData {
 	vec3 position;
 	vec3 normal;
 	vec2 uv;
+	mat3 TBN;
 };
 
 

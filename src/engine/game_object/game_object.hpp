@@ -15,6 +15,7 @@ class GameObject : public Renderable
 	std::shared_ptr<Mesh> mesh;
 
 public:
+	unsigned int id = -1;
 	Transform transform;
 
 	GameObject(std::shared_ptr<Mesh> p_mesh);

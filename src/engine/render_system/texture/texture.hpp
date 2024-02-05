@@ -14,8 +14,11 @@ enum TextureChannels
 
 class Texture
 {
+protected:
 	unsigned int id;
 	int width, height, channels;
+
+	Texture() {}
 
 public:
 	Texture(std::string file);
