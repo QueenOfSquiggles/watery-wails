@@ -1,5 +1,5 @@
 #include "game/opening_scene.hpp"
-
+#include "engine/audio_system/audio.hpp"
 int main()
 {
 	// creates engine context
@@ -10,6 +10,9 @@ int main()
 
 	// manufactures game scene
 	load_opening_scene(engine);
+
+	auto sfx = AudioFile("res/testing/sfx/pepSound3.ogg");
+	sfx.play();
 
 	// begins game loop (locks thread until completion)
 	engine->start();

@@ -64,7 +64,7 @@ ShaderComp ShaderProgram::load_program(ShaderType type, std::filesystem::path fi
 	}
 	std::string code_buffer;
 	std::string line;
-	unsigned int line_num;
+	unsigned int line_num = 0;
 	while (getline(reader, line))
 	{
 		code_buffer += this->preprocess_shader_code(line, file, ++line_num) + "\n";

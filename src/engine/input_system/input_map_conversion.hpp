@@ -32,7 +32,7 @@ namespace input
 	{
 		unsigned int code = GLFW_KEY_UNKNOWN;
 		InputMode mode = InputMode::Key;
-		unsigned int action = GLFW_PRESS;
+		int action = GLFW_PRESS;
 	};
 	void populate_input_ids();
 	std::optional<InputMapping> load_mapping(std::string key);

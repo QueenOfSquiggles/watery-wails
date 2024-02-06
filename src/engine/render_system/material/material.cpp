@@ -2,6 +2,7 @@
 
 Material::Material(std::filesystem::path file)
 {
+	// TODO: is this constructor necessary???
 }
 
 Material::Material(std::shared_ptr<ShaderProgram> program, std::shared_ptr<Texture> p_albedo, std::shared_ptr<Texture> p_normal, std::shared_ptr<Texture> p_orm)

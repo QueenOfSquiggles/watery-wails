@@ -80,10 +80,10 @@ void load_opening_scene(Engine *engine)
 		{
 			engine->quit();
 		}
-		glm::vec3 n_pos = {-1, 1, sin(engine->current_time * .25) * 5.0 + 3.0};
+		// glm::vec3 n_pos = {-1, 1, sin(engine->current_time * .25) * 5.0 + 3.0};
 	};
 
-	bool show_demo_window = true;
+	// bool show_demo_window = true;
 	auto window_flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysUseWindowPadding;
 	auto debug_draw = [=]() mutable
 	{

@@ -199,10 +199,7 @@ MeshSurfaceDataContainer Mesh::load_surf_data_container(aiMesh *mesh, const aiSc
 			data.indices.push_back(face.mIndices[j]);
 		}
 	}
-	if (mesh->mMaterialIndex >= 0)
-	{
-		data.material = load_material(scene->mMaterials[mesh->mMaterialIndex], file);
-	}
+	data.material = load_material(scene->mMaterials[mesh->mMaterialIndex], file);
 	data.attributes = {
 		VertexDataAttribute(VertexDataAttributeType::FLOAT, 3), // position
 		VertexDataAttribute(VertexDataAttributeType::FLOAT, 3), // normal
@@ -217,7 +214,17 @@ std::shared_ptr<Material> Mesh::load_material(aiMaterial *mat, std::filesystem::
 {
 	// std::cout << "Loading material: " << mat->GetName().C_Str() << std::endl;
 	std::vector<std::shared_ptr<Texture>> textures;
-	std::vector<aiTextureType> types = {aiTextureType_DIFFUSE, aiTextureType_NORMALS, aiTextureType_SPECULAR};
+	std::vector<aiTextureType> types = {aiTextureType_DIFFUSE, aiTextureType_NORMALS, aiTextureType_UNKNOWN};
+	// if (mat->GetTextureCount(aiTextureType_UNKNOWN) > 0)
+	// {
+	// 	auto n = mat->GetTextureCount(aiTextureType_UNKNOWN);
+	// 	aiString path;
+	// 	for (int i = 0; i < n; i++)
+	// 	{
+	// 		mat->GetTexture(aiTextureType_UNKNOWN, i, &path);
+	// 		std::cout << "Found unknown texture type: " << path.C_Str() << std::endl;
+	// 	}
+	// }
 	for (auto type : types)
 	{
 		auto n_of_type = mat->GetTextureCount(type);
@@ -228,7 +235,7 @@ std::shared_ptr<Material> Mesh::load_material(aiMaterial *mat, std::filesystem::
 			continue;
 		}
 		aiString str;
-		mat->GetTexture(aiTextureType_DIFFUSE, 0, &str);
+		mat->GetTexture(type, 0, &str);
 		auto path = file.parent_path();
 		// std::cout << "Loading material texture: " << path << std::endl;
 		path.append(str.C_Str());

@@ -44,7 +44,9 @@ void Renderer::render(double delta, double currtime)
 		batch->program->set_vec3("sun.colour", sun.colour);
 		batch->program->set_float("material.specular_strength", specular_strength);
 
-		for (int i = 0; i < point_lights.size(); i++)
+		// I really wish C++'s `auto` keyword worked like in rust
+		//	where it would use the context to determine the expected type
+		for (std::vector<PointLight>::size_type i = 0; i < point_lights.size(); i++)
 		{
 			auto idx = std::to_string(i);
 			auto light = point_lights[i];
