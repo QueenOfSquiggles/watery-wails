@@ -18,13 +18,8 @@ void AudioFile::load_audio_data()
 	short *data;
 	int channels, sample_rate, len;
 	len = stb_vorbis_decode_filename(audio_file.c_str(), &channels, &sample_rate, &data);
-	if (len)
-	{
-		std::cout << "Loaded vorbis data!" << std::endl
-				  << "\tChannels=" << channels << std::endl
-				  << "\tSample Rate=" << sample_rate << "Hz" << std::endl
-				  << "\tLength=" << len << std::endl;
-	}
+	alGenBuffers(1, &al_buffer);
+	// alBufferData(al_buffer, AL_FORMA)
 }
 
 void AudioFile::set_loop(bool is_looping) { looping = is_looping; }
@@ -51,10 +46,56 @@ void AudioFile::stop()
 }
 bool AudioFile::get_is_playing() { return is_playing; }
 
+//
+//
+//
+
+AudioSource::AudioSource(std::shared_ptr<AudioFile> audio) : audio(audio)
+{
+	alGenSources(1, &source_buffer);
+	alSourcei(source_buffer, AL_BUFFER, audio->al_buffer);
+}
+
+AudioSource::~AudioSource()
+{
+}
+
+//
+//
+//
+
 std::shared_ptr<AudioSystem> AudioSystem::instance = std::shared_ptr<AudioSystem>(new AudioSystem());
 
+AudioSystem::AudioSystem()
+{
+	this->device = std::shared_ptr<ALCdevice>(alcOpenDevice(NULL));
+	if (device)
+	{
+		auto ctx = alcCreateContext(device.get(), NULL);
+		alcMakeContextCurrent(ctx);
+	}
+	alListener3f(AL_POSITION, 0.0f, 0.0f, 0.0f);
+	alListener3f(AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+	float orientation[] = {0, 0, 0, 0, 1, 0};
+	alListenerfv(AL_ORIENTATION, orientation);
+	// alListenerf(AL_GAIN, 1);
+}
+
+AudioSystem::~AudioSystem()
+{
+	auto ctx = alcGetCurrentContext();
+	auto device = alcGetContextsDevice(ctx);
+	alcMakeContextCurrent(NULL);
+	alcDestroyContext(ctx);
+	alcCloseDevice(device);
+}
 void AudioSystem::queue_audio(std::shared_ptr<AudioFile> audio)
 {
 	streams.push_back(audio);
 }
 void AudioSystem::tick_streams() {}
+
+void AudioSystem::set_gain(float value)
+{
+	alListenerf(AL_GAIN, value);
+}
