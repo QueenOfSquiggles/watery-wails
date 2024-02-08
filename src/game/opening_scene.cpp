@@ -21,11 +21,9 @@ public:
 void load_opening_scene(Engine *engine)
 {
 
-	auto mesh = ResourceFactory::load_mesh("res/testing/meshes/my_export/gltf/test_survival_backpack.gltf");
+	auto mesh = ResourceFactory::load_mesh("res/testing/meshes/poly_haven_hatchet/hatchet_1k.gltf");
 	auto obj = std::shared_ptr<MyObj>(new MyObj(mesh));
-	obj->transform.position = {0.0f, 1.0f, 2.0f};
-	// obj->transform.rotation = {glm::radians(90.0f), 0, 0};
-	// obj->transform.scale = glm::vec3(1.0);
+	obj->transform.position = {0.0f, 0.0f, 2.0f};
 
 	engine->load_object(std::dynamic_pointer_cast<MyObj>(obj), "default");
 	auto renderer_weak = std::weak_ptr<Renderer>(engine->window->renderer);
