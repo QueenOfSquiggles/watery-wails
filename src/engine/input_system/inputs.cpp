@@ -135,13 +135,21 @@ void Input::poll_input_events(GLFWwindow *window)
 				break;
 			}
 		}
-		this->states[action.first].is_pressed = state;
+		auto istate = this->states[action.first];
+		istate.just_pressed = (state && !istate.is_pressed);
+		istate.is_pressed = state;
+		this->states[action.first] = istate;
 	}
 }
 
 bool Input::is_action_pressed(std::string action)
 {
 	return this->states[action].is_pressed;
+}
+
+bool Input::is_action_just_pressed(std::string action)
+{
+	return this->states[action].just_pressed;
 }
 
 float Input::get_action_axis(std::string action_negative, std::string action_positive)

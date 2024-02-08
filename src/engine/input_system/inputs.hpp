@@ -17,6 +17,7 @@ namespace input
 	struct InputState
 	{
 		bool is_pressed;
+		bool just_pressed;
 	};
 
 	class Input
@@ -34,6 +35,7 @@ namespace input
 		void poll_input_events(GLFWwindow *window);
 
 		bool is_action_pressed(std::string action);
+		bool is_action_just_pressed(std::string action);
 		float get_action_axis(std::string action_negative, std::string action_positive);
 		glm::vec2 get_action_vector(std::string action_negative_x, std::string action_positive_x, std::string action_negative_y, std::string action_positive_y);
 	};

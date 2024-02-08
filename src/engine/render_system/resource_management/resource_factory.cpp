@@ -58,3 +58,20 @@ std::shared_ptr<ShaderProgram> ResourceFactory::load_shader(std::filesystem::pat
 	instance->shaders[file] = shader;
 	return shader;
 }
+
+std::shared_ptr<AudioData> ResourceFactory::load_audio(std::filesystem::path file, bool load_data_now)
+{
+	ensure_instance();
+	if (auto search = instance->audio.find(file); search != instance->audio.end())
+	{
+		return search->second;
+	}
+
+	auto data = std::shared_ptr<AudioData>(new AudioData(file));
+	instance->audio[file] = data;
+	if (load_data_now)
+	{
+		data->load_audio_data();
+	}
+	return data;
+}

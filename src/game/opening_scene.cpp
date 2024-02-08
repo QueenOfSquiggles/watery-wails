@@ -51,8 +51,13 @@ void load_opening_scene(Engine *engine)
 		});
 	}
 
+	auto audio_file = ResourceFactory::load_audio("include/audio_file/test-audio.wav");
+	auto sfx = std::shared_ptr<AudioSource>(new AudioSource(audio_file));
+	engine->audio->queue_audio(sfx);
+
 	// create weak pointers to needed resources
 	auto cam_weak = std::weak_ptr<Camera>(engine->window->renderer->camera);
+	// auto sfx_weak = std::weak_ptr<AudioSource>(sfx);
 	auto input_weak = std::weak_ptr<Input>(engine->input);
 	float move_speed = 10.0f;
 	float turn_speed = glm::two_pi<float>() * 10.0f;
@@ -76,11 +81,21 @@ void load_opening_scene(Engine *engine)
 		{
 			cam->yaw += glm::sign(rotate) * delta * turn_speed;
 		}
-		if (input->is_action_pressed("force_quit"))
+		if (input->is_action_just_pressed("force_quit"))
 		{
 			engine->quit();
 		}
-		// glm::vec3 n_pos = {-1, 1, sin(engine->current_time * .25) * 5.0 + 3.0};
+		if (input->is_action_just_pressed("test_something"))
+		{
+			if (sfx->get_is_playing())
+			{
+				sfx->pause();
+			}
+			else
+			{
+				sfx->play();
+			}
+		}
 	};
 
 	// bool show_demo_window = true;

@@ -7,9 +7,9 @@
 #include <map>
 
 constexpr std::string_view PREFIX_KEY = {"key"};
-constexpr std::string_view PREFIX_MOUSE_BUTTON = {"mbtn"};
-constexpr std::string_view PREFIX_GAMEPAD_BUTTON = {"joybtn"};
-constexpr std::string_view PREFIX_GAMEPAD_AXIS = {"joyaxis"};
+constexpr std::string_view PREFIX_MOUSE_BUTTON = {"m"};
+constexpr std::string_view PREFIX_GAMEPAD_BUTTON = {"joy_btn"};
+constexpr std::string_view PREFIX_GAMEPAD_AXIS = {"joy_axis"};
 constexpr std::string_view DELIM_MODE_PREFIX = {"_"};
 constexpr std::string_view DELIM_INPUT_CODE = {":"};
 constexpr unsigned int SCANCODE_SEARCH_RANGE = 256; // TBH probably still too high

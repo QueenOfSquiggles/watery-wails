@@ -11,9 +11,6 @@ int main()
 	// manufactures game scene
 	load_opening_scene(engine);
 
-	auto sfx = AudioFile("res/testing/sfx/pepSound3.ogg");
-	sfx.play();
-
 	// begins game loop (locks thread until completion)
 	engine->start();
 

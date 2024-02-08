@@ -5,6 +5,7 @@
 #include "../material/material.hpp"
 #include "../texture/texture.hpp"
 #include "../shaders/program.hpp"
+#include "engine/audio_system/audio.hpp"
 
 #include <vector>
 #include <string>
@@ -21,6 +22,7 @@ class ResourceFactory
 	_ResMap<Material> materials;
 	_ResMap<Texture> textures;
 	_ResMap<ShaderProgram> shaders;
+	_ResMap<AudioData> audio;
 	static std::unique_ptr<ResourceFactory> instance;
 	static void ensure_instance();
 
@@ -32,4 +34,5 @@ public:
 	static std::shared_ptr<Material> load_material(std::filesystem::path file);
 	static std::shared_ptr<Texture> load_texture(std::filesystem::path file);
 	static std::shared_ptr<ShaderProgram> load_shader(std::filesystem::path file);
+	static std::shared_ptr<AudioData> load_audio(std::filesystem::path file, bool load_data_now = true);
 };

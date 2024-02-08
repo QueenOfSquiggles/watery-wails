@@ -42,6 +42,7 @@ Engine::Engine()
 	glfwSetFramebufferSizeCallback(window->get(), window_resize_callback);
 	Engine::instance = std::shared_ptr<Engine>(this);
 	input = std::shared_ptr<input::Input>(new input::Input());
+	audio = std::shared_ptr<AudioSystem>(new AudioSystem());
 	glfwSetErrorCallback(glfw_error_callback);
 	// gl modes
 	glEnable(GL_DEPTH_TEST);
@@ -77,6 +78,15 @@ void Engine::add_render_group(std::string name)
 
 void Engine::start()
 {
+	if (!game_tick_func)
+	{
+		std::cout << "INVALID GAME LOOP!!!!!" << std::endl;
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+		return;
+	}
+
 	double time = glfwGetTime();
 	delta = 0;
 	double elapsed_fps_time = 0;
@@ -98,11 +108,9 @@ void Engine::start()
 		}
 
 		input->poll_input_events(window->get());
+		audio->tick_streams();
 		window->game_tick(delta);
-		if (game_tick_func)
-			game_tick_func(delta);
-		else
-			std::cout << "INVALID GAME LOOP!!!!!" << std::endl;
+		game_tick_func(delta);
 	}
 	// // Cleanup
 	// std::cout << "Cleaning up IMGUI" << std::endl;

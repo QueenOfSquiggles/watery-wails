@@ -15,3 +15,9 @@ default = ["key_q", "key_x"]
 
 [rotate_right]
 default = ["key_e", "key_z"]
+
+[test_something]
+default = ["key_space", "key_enter"]
+
+[force_quit]
+default = ["key_f8"]

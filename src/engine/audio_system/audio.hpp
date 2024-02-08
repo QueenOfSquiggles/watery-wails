@@ -1,58 +1,63 @@
 #pragma once
-#include <stb_vorbis.h>
+#include <audio_file/AudioFile.h>
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <filesystem>
 #include <memory>
 #include <vector>
+#include <string>
 #include <iostream>
 #include <glm/glm.hpp>
+#include "engine/safety/safety.hpp"
 
-class AudioFile
+std::string get_al_error_string();
+
+class AudioData
 {
 	friend class AudioSource;
-	bool streamed;
-	bool looping;
-	bool is_playing;
-	std::filesystem::path audio_file;
-	unsigned int current_index = 0;
+
+	bool data_loaded;
 	unsigned int al_buffer = 0;
 
-	void load_audio_data();
-
 public:
-	AudioFile(std::filesystem::path file);
-	~AudioFile();
-	void set_loop(bool is_looping);
-	void set_streamed(bool is_streaming);
-
-	void play();
-	void pause();
-	void stop();
-	bool get_is_playing();
+	std::filesystem::path file_path;
+	void load_audio_data();
+	AudioData(std::filesystem::path file);
+	~AudioData();
 };
 
 class AudioSource
 {
-	std::shared_ptr<AudioFile> audio;
+	friend class AudioSystem;
+	std::shared_ptr<AudioData> audio;
 	unsigned int source_buffer;
 
+	bool looping;
+	bool is_playing;
+
 public:
-	AudioSource(std::shared_ptr<AudioFile> audio);
+	AudioSource(std::shared_ptr<AudioData> audio);
 	~AudioSource();
+	void play();
+	void pause();
+	void stop();
+	bool get_is_playing();
+
+	void set_loop(bool is_looping);
 };
 
 class AudioSystem
 {
-	std::shared_ptr<ALCdevice> device;
-	std::vector<std::shared_ptr<AudioFile>> streams;
-	AudioSystem();
-	~AudioSystem();
+	ALCdevice *device;
+	std::vector<std::weak_ptr<AudioSource>> streams;
 
 public:
-	static std::shared_ptr<AudioSystem> instance;
-	void queue_audio(std::shared_ptr<AudioFile> audio);
+	AudioSystem();
+	~AudioSystem();
+	void queue_audio(std::shared_ptr<AudioSource> &audio);
 	void tick_streams();
 
+	void pause_all();
+	void resume_all();
 	void set_gain(float value);
 };
