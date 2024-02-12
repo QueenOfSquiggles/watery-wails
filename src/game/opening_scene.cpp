@@ -21,6 +21,8 @@ public:
 void load_opening_scene(Engine *engine)
 {
 
+	auto test_hdr = ResourceFactory::load_texture("res/texture/rostock_laage_airport_1k.hdr");
+
 	auto mesh = ResourceFactory::load_mesh("res/testing/meshes/poly_haven_hatchet/hatchet_1k.gltf");
 	auto obj = std::shared_ptr<MyObj>(new MyObj(mesh));
 	obj->transform.position = {0.0f, 0.0f, 2.0f};
