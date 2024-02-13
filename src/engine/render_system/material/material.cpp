@@ -1,5 +1,7 @@
 #include "material.hpp"
 
+Material::Material() {}
+
 Material::Material(std::filesystem::path file)
 {
 	// TODO: is this constructor necessary???
@@ -24,15 +26,20 @@ void Material::bind(RenderContext ctx)
 	ctx.program->set_int("material.albedo", 0);
 	ctx.program->set_int("material.normal", 1);
 	ctx.program->set_int("material.orm", 2);
-
-	albedo->bind_slot(0);
-	normal->bind_slot(1);
-	orm->bind_slot(2);
+	if (albedo)
+		albedo->bind_slot(0);
+	if (normal)
+		normal->bind_slot(1);
+	if (orm)
+		orm->bind_slot(2);
 }
 
 void Material::unbind()
 {
-	albedo->unbind_slot(0);
-	normal->unbind_slot(1);
-	orm->unbind_slot(2);
+	if (albedo)
+		albedo->unbind_slot(0);
+	if (normal)
+		normal->unbind_slot(1);
+	if (orm)
+		orm->unbind_slot(2);
 }

@@ -71,9 +71,19 @@ void Engine::load_object(std::shared_ptr<GameObject> obj, std::string render_gro
 	window->renderer->register_game_object(render_group, obj);
 }
 
+void Engine::add_renderable(std::string batch, std::shared_ptr<Renderable> renderable)
+{
+	window->renderer->register_game_object(batch, renderable);
+}
+
 void Engine::add_render_group(std::string name)
 {
-	window->renderer->register_batch(name, std::shared_ptr<ShaderProgram>(new ShaderProgram("res/shader/" + name + ".vert", "res/shader/" + name + ".frag")));
+	add_render_group(name, "res/shader/" + name, true);
+}
+
+void Engine::add_render_group(std::string name, std::string shader_path, bool preprocess)
+{
+	window->renderer->register_batch(name, std::shared_ptr<ShaderProgram>(new ShaderProgram(shader_path + ".vert", shader_path + ".frag", preprocess)));
 }
 
 void Engine::start()

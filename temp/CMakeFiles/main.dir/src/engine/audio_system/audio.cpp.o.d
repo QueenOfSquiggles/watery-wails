@@ -339,4 +339,4 @@ CMakeFiles/main.dir/src/engine/audio_system/audio.cpp.o: \
  /usr/include/glm/detail/type_half.hpp \
  /usr/include/glm/detail/type_half.inl /usr/include/glm/integer.hpp \
  /usr/include/glm/detail/func_integer.inl \
- /home/squiggles/Documents/programming/cpp/cpp-crash-course/./src/engine/safety/safety.hpp
+ /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/safety/safety.hpp

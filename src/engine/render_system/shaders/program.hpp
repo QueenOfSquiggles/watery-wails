@@ -38,10 +38,10 @@ private:
 	unsigned int program;
 
 	std::string preprocess_shader_code(std::string in_code, std::filesystem::path file, unsigned int line_number, unsigned int recursion_depth = 0);
-	ShaderComp load_program(ShaderType type, std::filesystem::path file);
+	ShaderComp load_program(ShaderType type, std::filesystem::path file, bool do_preprocess);
 
 public:
-	ShaderProgram(std::filesystem::path vert, std::filesystem::path frag);
+	ShaderProgram(std::filesystem::path vert, std::filesystem::path frag, bool do_preprocess = true);
 	~ShaderProgram();
 
 	void enable();

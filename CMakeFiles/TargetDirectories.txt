@@ -1,0 +1,7 @@
+/home/squiggles/Documents/programming/cpp/cpp-crash-course/CMakeFiles/main.dir
+/home/squiggles/Documents/programming/cpp/cpp-crash-course/CMakeFiles/edit_cache.dir
+/home/squiggles/Documents/programming/cpp/cpp-crash-course/CMakeFiles/rebuild_cache.dir
+/home/squiggles/Documents/programming/cpp/cpp-crash-course/CMakeFiles/list_install_components.dir
+/home/squiggles/Documents/programming/cpp/cpp-crash-course/CMakeFiles/install.dir
+/home/squiggles/Documents/programming/cpp/cpp-crash-course/CMakeFiles/install/local.dir
+/home/squiggles/Documents/programming/cpp/cpp-crash-course/CMakeFiles/install/strip.dir

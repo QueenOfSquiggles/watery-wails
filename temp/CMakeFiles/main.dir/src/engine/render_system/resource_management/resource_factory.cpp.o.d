@@ -399,7 +399,7 @@ CMakeFiles/main.dir/src/engine/render_system/resource_management/resource_factor
  /usr/include/assimp/camera.h /usr/include/assimp/material.h \
  /usr/include/assimp/material.inl /usr/include/assimp/anim.h \
  /usr/include/assimp/metadata.h /usr/include/assimp/postprocess.h \
- /home/squiggles/Documents/programming/cpp/cpp-crash-course/./src/engine/audio_system/audio.hpp \
+ /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/audio_system/audio.hpp \
  /home/squiggles/Documents/programming/cpp/cpp-crash-course/include/audio_file/AudioFile.h \
  /usr/include/c++/13.2.1/unordered_map \
  /usr/include/c++/13.2.1/bits/unordered_map.h \
@@ -410,7 +410,7 @@ CMakeFiles/main.dir/src/engine/render_system/resource_management/resource_factor
  /usr/include/c++/13.2.1/bits/erase_if.h /usr/include/c++/13.2.1/iterator \
  /usr/include/c++/13.2.1/bits/stream_iterator.h /usr/include/AL/al.h \
  /usr/include/AL/alc.h \
- /home/squiggles/Documents/programming/cpp/cpp-crash-course/./src/engine/safety/safety.hpp \
+ /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/safety/safety.hpp \
  /usr/include/c++/13.2.1/map /usr/include/c++/13.2.1/bits/stl_tree.h \
  /usr/include/c++/13.2.1/bits/stl_map.h \
  /usr/include/c++/13.2.1/bits/stl_multimap.h

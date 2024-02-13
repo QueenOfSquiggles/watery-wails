@@ -2,6 +2,7 @@
 #include "shaders/program.hpp"
 #include <string>
 #include <memory>
+
 struct RenderContext
 {
 	std::shared_ptr<ShaderProgram> program;

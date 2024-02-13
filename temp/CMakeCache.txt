@@ -224,15 +224,6 @@ MAIN_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 MAIN_SOURCE_DIR:STATIC=/home/squiggles/Documents/programming/cpp/cpp-crash-course
 
-//Value Computed by CMake
-main_BINARY_DIR:STATIC=/home/squiggles/Documents/programming/cpp/cpp-crash-course/temp
-
-//Value Computed by CMake
-main_IS_TOP_LEVEL:STATIC=ON
-
-//Value Computed by CMake
-main_SOURCE_DIR:STATIC=/home/squiggles/Documents/programming/cpp/cpp-crash-course
-
 
 ########################
 # INTERNAL cache entries

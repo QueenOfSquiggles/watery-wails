@@ -14,6 +14,7 @@ struct Material
 	std::shared_ptr<Texture> orm;
 
 public:
+	Material();
 	Material(std::shared_ptr<ShaderProgram> p_program, std::shared_ptr<Texture> p_albedo, std::shared_ptr<Texture> p_normal, std::shared_ptr<Texture> p_orm);
 	Material(std::shared_ptr<Texture> p_albedo, std::shared_ptr<Texture> p_normal, std::shared_ptr<Texture> p_orm);
 	Material(std::filesystem::path file);

@@ -372,7 +372,7 @@ CMakeFiles/main.dir/src/engine/render_system/render.cpp.o: \
  /usr/include/c++/13.2.1/pstl/glue_memory_defs.h \
  /usr/include/c++/13.2.1/pstl/execution_defs.h \
  /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/render_system/camera/camera.hpp \
- /home/squiggles/Documents/programming/cpp/cpp-crash-course/./src/engine/math/math.hpp \
+ /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/math/math.hpp \
  /usr/include/glm/gtx/string_cast.hpp \
  /usr/include/glm/gtc/type_precision.hpp \
  /usr/include/glm/gtc/type_precision.inl \

@@ -2,29 +2,171 @@
 
 
 cmake_minimum_required (VERSION 3.22.1)
+set(CMAKE_CXX_STANDARD 17)
+# Fix behavior of CMAKE_CXX_STANDARD when targeting macOS. (source: https://stackoverflow.com/a/31010221 )
+if (POLICY CMP0025)
+	cmake_policy(SET CMP0025 NEW)
+endif()
+
 project (MAIN)
 
 # Executable
-add_executable(main src/engine/window/window.cpp src/engine/math/math.cpp src/engine/game_object/game_object.cpp src/engine/render_system/shaders/program.cpp src/engine/render_system/camera/camera.cpp src/engine/render_system/resource_management/resource_factory.cpp src/engine/render_system/mesh/mesh.cpp src/engine/render_system/texture/texture.cpp src/engine/render_system/texture/texture_hdri.cpp src/engine/render_system/material/material.cpp src/engine/render_system/render.cpp src/engine/input_system/inputs.cpp src/engine/input_system/input_map_conversion.cpp src/engine/audio_system/audio.cpp src/engine/engine.cpp src/game/opening_scene.cpp src/deps/imgui/misc/cpp/imgui_stdlib.cpp src/deps/imgui/misc/freetype/imgui_freetype.cpp src/deps/imgui/backends/imgui_impl_glfw.cpp src/deps/imgui/backends/imgui_impl_opengl3.cpp src/deps/imgui/imgui_tables.cpp src/deps/imgui/imgui_demo.cpp src/deps/imgui/imgui.cpp src/deps/imgui/imgui_widgets.cpp src/deps/imgui/imgui_draw.cpp src/deps/glad/glad.c src/deps/stbi/stbi_implmentation.cpp src/main.cpp)
+add_executable(main
+	src/engine/window/window.cpp
+	src/engine/math/math.cpp
+	src/engine/game_object/game_object.cpp
+	src/engine/render_system/shaders/program.cpp
+	src/engine/render_system/camera/camera.cpp
+	src/engine/render_system/resource_management/resource_factory.cpp
+	src/engine/render_system/mesh/mesh.cpp
+	src/engine/render_system/texture/texture.cpp
+	src/engine/render_system/texture/texture_hdri.cpp
+	src/engine/render_system/material/material.cpp
+	src/engine/render_system/render.cpp
+	src/engine/input_system/inputs.cpp
+	src/engine/input_system/input_map_conversion.cpp
+	src/engine/audio_system/audio.cpp
+	src/engine/engine.cpp
+	src/game/opening_scene.cpp
+	src/deps/imgui/misc/cpp/imgui_stdlib.cpp
+	src/deps/imgui/misc/freetype/imgui_freetype.cpp
+	src/deps/imgui/backends/imgui_impl_glfw.cpp
+	src/deps/imgui/backends/imgui_impl_opengl3.cpp
+	src/deps/imgui/imgui_tables.cpp
+	src/deps/imgui/imgui_demo.cpp
+	src/deps/imgui/imgui.cpp
+	src/deps/imgui/imgui_widgets.cpp
+	src/deps/imgui/imgui_draw.cpp
+	src/deps/glad/glad.c
+	src/deps/stbi/stbi_implmentation.cpp
+	src/main.cpp
+	"res/actions.toml"
+	"res/testing/textures/texture_10.png"
+	"res/testing/textures/texture_13.png"
+	"res/testing/textures/texture_05.png"
+	"res/testing/textures/texture_02.png"
+	"res/testing/textures/texture_06.png"
+	"res/testing/textures/texture_09.png"
+	"res/testing/textures/texture_01.png"
+	"res/testing/textures/texture_11.png"
+	"res/testing/textures/texture_03.png"
+	"res/testing/textures/texture_12.png"
+	"res/testing/textures/texture_04.png"
+	"res/testing/textures/texture_08.png"
+	"res/testing/textures/texture_07.png"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_nor_gl_1k.jpg"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_1k.gltf"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_diff_1k.jpg"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_arm_1k.jpg"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_1k.bin"
+	"res/testing/meshes/my_export/gltf/test_survival_backpack.bin"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_baseColor.jpg"
+	"res/testing/meshes/my_export/gltf/test_survival_backpack.gltf"
+	"res/testing/meshes/my_export/gltf/orm_data_layers.kra~"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_metallicRoughness.png"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_normal.jpg"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_normal.png"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_metallicRoughness.jpg"
+	"res/testing/meshes/my_export/gltf/orm_data_layers.kra"
+	"res/testing/Readme.html"
+	"res/shader/unlit.vert"
+	"res/shader/includes/vertex_prefix.shader"
+	"res/shader/includes/fragment_prefix.shader"
+	"res/shader/includes/lights.shader"
+	"res/shader/includes/pbr_lighting.shader"
+	"res/shader/includes/components/light_structs.shader"
+	"res/shader/includes/components/constants.shader"
+	"res/shader/default.frag"
+	"res/shader/unlit.frag"
+	"res/shader/default.vert"
+	"res/texture/wall.jpg"
+	"res/texture/stone_tiles_arm_1k.jpg"
+	"res/texture/rostock_laage_airport_1k.hdr"
+	"res/texture/awesomeface.png"
+	"res/texture/stone_tiles_diff_1k.jpg"
+	"res/texture/stone_tiles_nor_gl_1k.jpg"
+)
 
 
 # Includes
-target_include_directories(main PUBLIC ./src/)
-target_include_directories(main PUBLIC include/)
-target_include_directories(main PUBLIC src/deps/imgui)
-target_include_directories(main PUBLIC /usr/include/freetype2)
-target_include_directories(main PUBLIC /usr/include/libpng16)
-target_include_directories(main PUBLIC /usr/include/harfbuzz)
-target_include_directories(main PUBLIC /usr/include/glib-2.0)
-target_include_directories(main PUBLIC /usr/lib/glib-2.0/include)
-target_include_directories(main PUBLIC /usr/include/sysprof-6)
-target_include_directories(main PUBLIC src/deps/imgui)
-target_include_directories(main PUBLIC /usr/include)
+target_include_directories(main PUBLIC 
+	src/
+	include/
+	src/deps/imgui
+	/usr/include/freetype2
+	/usr/include/libpng16
+	/usr/include/harfbuzz
+	/usr/include/glib-2.0
+	/usr/lib/glib-2.0/include
+	/usr/include/sysprof-6
+	src/deps/imgui
+	/usr/include
+)
 # Libraries
-target_link_libraries(main glfw)
-target_link_libraries(main GL)
-target_link_libraries(main assimp)
-target_link_libraries(main freetype)
-target_link_libraries(main openal)
+target_link_libraries(main
+	glfw
+	GL
+	assimp
+	freetype
+	openal
+)
+# Resources
+add_custom_command(TARGET main POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+${CMAKE_SOURCE_DIR}/res/ $<TARGET_FILE_DIR:main>/res/
+)
+set(RESOURCE_FILES
+	"res/actions.toml"
+	"res/testing/textures/texture_10.png"
+	"res/testing/textures/texture_13.png"
+	"res/testing/textures/texture_05.png"
+	"res/testing/textures/texture_02.png"
+	"res/testing/textures/texture_06.png"
+	"res/testing/textures/texture_09.png"
+	"res/testing/textures/texture_01.png"
+	"res/testing/textures/texture_11.png"
+	"res/testing/textures/texture_03.png"
+	"res/testing/textures/texture_12.png"
+	"res/testing/textures/texture_04.png"
+	"res/testing/textures/texture_08.png"
+	"res/testing/textures/texture_07.png"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_nor_gl_1k.jpg"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_1k.gltf"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_diff_1k.jpg"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_arm_1k.jpg"
+	"res/testing/meshes/poly_haven_hatchet/hatchet_1k.bin"
+	"res/testing/meshes/my_export/gltf/test_survival_backpack.bin"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_baseColor.jpg"
+	"res/testing/meshes/my_export/gltf/test_survival_backpack.gltf"
+	"res/testing/meshes/my_export/gltf/orm_data_layers.kra~"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_metallicRoughness.png"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_normal.jpg"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_normal.png"
+	"res/testing/meshes/my_export/gltf/Scene_-_Root_metallicRoughness.jpg"
+	"res/testing/meshes/my_export/gltf/orm_data_layers.kra"
+	"res/testing/Readme.html"
+	"res/shader/unlit.vert"
+	"res/shader/includes/vertex_prefix.shader"
+	"res/shader/includes/fragment_prefix.shader"
+	"res/shader/includes/lights.shader"
+	"res/shader/includes/pbr_lighting.shader"
+	"res/shader/includes/components/light_structs.shader"
+	"res/shader/includes/components/constants.shader"
+	"res/shader/default.frag"
+	"res/shader/unlit.frag"
+	"res/shader/default.vert"
+	"res/texture/wall.jpg"
+	"res/texture/stone_tiles_arm_1k.jpg"
+	"res/texture/rostock_laage_airport_1k.hdr"
+	"res/texture/awesomeface.png"
+	"res/texture/stone_tiles_diff_1k.jpg"
+	"res/texture/stone_tiles_nor_gl_1k.jpg"
+)
+set_target_properties(main PROPERTIES
+	MACOSX_BUNDLE TRUE
+	MAXOSX_FRAMEWORK_IDENTIFIER org.ssbsgen.main
+	RESOURCE "${RESOURCE_FILES}"
+)
 # Installation
 install(TARGETS main)
+

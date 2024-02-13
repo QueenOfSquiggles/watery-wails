@@ -51,10 +51,12 @@ void load_opening_scene(Engine *engine)
 		});
 	}
 
-	auto audio_file = ResourceFactory::load_audio("include/audio_file/test-audio.wav");
+	auto audio_file = ResourceFactory::load_audio("res/testing/sfx/test-audio.wav");
 	auto sfx = std::shared_ptr<AudioSource>(new AudioSource(audio_file));
 	engine->audio->queue_audio(sfx);
 
+	engine->add_render_group("skybox", "res/shader/skybox/skybox", false);
+	engine->add_renderable("skybox", std::shared_ptr<SkyBox>{new SkyBox("res/texture/rostock_laage_airport_1k.hdr")});
 	// create weak pointers to needed resources
 	auto cam_weak = std::weak_ptr<Camera>(engine->window->renderer->camera);
 	// auto sfx_weak = std::weak_ptr<AudioSource>(sfx);

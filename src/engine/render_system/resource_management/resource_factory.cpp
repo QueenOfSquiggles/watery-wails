@@ -46,7 +46,7 @@ std::shared_ptr<Texture> ResourceFactory::load_texture(std::filesystem::path fil
 	instance->textures[file] = texture;
 	return texture;
 }
-std::shared_ptr<ShaderProgram> ResourceFactory::load_shader(std::filesystem::path file)
+std::shared_ptr<ShaderProgram> ResourceFactory::load_shader(std::filesystem::path file, bool preprocess)
 {
 	ensure_instance();
 	if (auto search = instance->shaders.find(file); search != instance->shaders.end())
@@ -54,7 +54,11 @@ std::shared_ptr<ShaderProgram> ResourceFactory::load_shader(std::filesystem::pat
 		return search->second;
 	}
 
-	auto shader = std::shared_ptr<ShaderProgram>(new ShaderProgram(file.stem().string() + ".vert", file.stem().string() + ".frag"));
+	auto shader = std::shared_ptr<ShaderProgram>(new ShaderProgram{
+		file.stem().string() + ".vert",
+		file.stem().string() + ".frag",
+		preprocess,
+	});
 	instance->shaders[file] = shader;
 	return shader;
 }

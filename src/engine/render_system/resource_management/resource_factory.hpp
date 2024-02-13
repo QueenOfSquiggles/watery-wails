@@ -33,6 +33,6 @@ public:
 	static std::shared_ptr<Mesh> load_mesh(std::filesystem::path file);
 	static std::shared_ptr<Material> load_material(std::filesystem::path file);
 	static std::shared_ptr<Texture> load_texture(std::filesystem::path file);
-	static std::shared_ptr<ShaderProgram> load_shader(std::filesystem::path file);
+	static std::shared_ptr<ShaderProgram> load_shader(std::filesystem::path file, bool preprocess = true);
 	static std::shared_ptr<AudioData> load_audio(std::filesystem::path file, bool load_data_now = true);
 };

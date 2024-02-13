@@ -1,10 +1,10 @@
 #include "program.hpp"
 
-ShaderProgram::ShaderProgram(std::filesystem::path vert, std::filesystem::path frag)
+ShaderProgram::ShaderProgram(std::filesystem::path vert, std::filesystem::path frag, bool do_preprocess)
 {
 	this->program = 0;
-	ShaderComp vcomp = load_program(ShaderType::VERTEX, vert);
-	ShaderComp fcomp = load_program(ShaderType::FRAGMENT, frag);
+	ShaderComp vcomp = load_program(ShaderType::VERTEX, vert, do_preprocess);
+	ShaderComp fcomp = load_program(ShaderType::FRAGMENT, frag, do_preprocess);
 	if (!vcomp.succeeded)
 	{
 		std::cout << "Failed to load vertex shader:" << std::endl
@@ -50,7 +50,7 @@ const std::string SHADER_PREFIX = R"(
 // - - - - - - - -
 )";
 
-ShaderComp ShaderProgram::load_program(ShaderType type, std::filesystem::path file)
+ShaderComp ShaderProgram::load_program(ShaderType type, std::filesystem::path file, bool do_preprocess)
 {
 	ShaderComp comp;
 	// load source data
@@ -67,10 +67,19 @@ ShaderComp ShaderProgram::load_program(ShaderType type, std::filesystem::path fi
 	unsigned int line_num = 0;
 	while (getline(reader, line))
 	{
-		code_buffer += this->preprocess_shader_code(line, file, ++line_num) + "\n";
+		if (do_preprocess)
+		{
+			code_buffer += this->preprocess_shader_code(line, file, ++line_num);
+		}
+		else
+		{
+			code_buffer += line;
+		}
+		code_buffer += "\n";
 	}
 	reader.close();
-	code_buffer = SHADER_PREFIX + code_buffer;
+	if (do_preprocess)
+		code_buffer = SHADER_PREFIX + code_buffer;
 
 	// create GL shader
 	unsigned int gl_type = GL_VERTEX_SHADER;

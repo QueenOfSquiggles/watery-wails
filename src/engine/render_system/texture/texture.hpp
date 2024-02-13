@@ -23,13 +23,13 @@ protected:
 public:
 	Texture(std::string file);
 	~Texture();
-
+	inline unsigned int get() { return id; }
 	inline int get_width() { return width; }
 	inline int get_height() { return height; }
 	inline int get_channels() { return channels; }
 
-	void bind();
-	void bind_slot(unsigned int slot);
-	void unbind();
-	void unbind_slot(unsigned int slot);
+	virtual void bind();
+	virtual void bind_slot(unsigned int slot);
+	virtual void unbind();
+	virtual void unbind_slot(unsigned int slot);
 };

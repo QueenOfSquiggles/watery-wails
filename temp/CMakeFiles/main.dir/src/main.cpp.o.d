@@ -378,7 +378,7 @@ CMakeFiles/main.dir/src/main.cpp.o: \
  /usr/include/c++/13.2.1/pstl/glue_memory_defs.h \
  /usr/include/c++/13.2.1/pstl/execution_defs.h \
  /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/game/../engine/window/../render_system/camera/camera.hpp \
- /home/squiggles/Documents/programming/cpp/cpp-crash-course/./src/engine/math/math.hpp \
+ /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/math/math.hpp \
  /usr/include/glm/gtx/string_cast.hpp \
  /usr/include/glm/gtc/type_precision.hpp \
  /usr/include/glm/gtc/type_precision.inl \
@@ -467,7 +467,7 @@ CMakeFiles/main.dir/src/main.cpp.o: \
  /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/game/../engine/audio_system/audio.hpp \
  /home/squiggles/Documents/programming/cpp/cpp-crash-course/include/audio_file/AudioFile.h \
  /usr/include/AL/al.h /usr/include/AL/alc.h \
- /home/squiggles/Documents/programming/cpp/cpp-crash-course/./src/engine/safety/safety.hpp \
+ /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/safety/safety.hpp \
  /usr/include/c++/13.2.1/deque /usr/include/c++/13.2.1/bits/stl_deque.h \
  /usr/include/c++/13.2.1/bits/deque.tcc \
  /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/game/../engine/render_system/resource_management/resource_factory.hpp

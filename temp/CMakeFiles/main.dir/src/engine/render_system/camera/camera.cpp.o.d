@@ -2,7 +2,7 @@ CMakeFiles/main.dir/src/engine/render_system/camera/camera.cpp.o: \
  /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/render_system/camera/camera.cpp \
  /usr/include/stdc-predef.h \
  /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/render_system/camera/camera.hpp \
- /home/squiggles/Documents/programming/cpp/cpp-crash-course/./src/engine/math/math.hpp \
+ /home/squiggles/Documents/programming/cpp/cpp-crash-course/src/engine/math/math.hpp \
  /usr/include/glm/glm.hpp /usr/include/glm/detail/_fixes.hpp \
  /usr/include/c++/13.2.1/cmath \
  /usr/include/c++/13.2.1/bits/requires_hosted.h \
