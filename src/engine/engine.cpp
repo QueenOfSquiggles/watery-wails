@@ -48,6 +48,7 @@ Engine::Engine()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
+	glDepthFunc(GL_LEQUAL);
 
 	window_resize_callback(window->get(), 800, 600);
 
@@ -78,10 +79,10 @@ void Engine::add_renderable(std::string batch, std::shared_ptr<Renderable> rende
 
 void Engine::add_render_group(std::string name)
 {
-	add_render_group(name, "res/shader/" + name, true);
+	add_render_group(name, "res/shader/" + name, true, default_render_batch_setup_callback);
 }
 
-void Engine::add_render_group(std::string name, std::string shader_path, bool preprocess)
+void Engine::add_render_group(std::string name, std::string shader_path, bool preprocess, std::function<void(RenderContext)> setup_callback)
 {
 	window->renderer->register_batch(name, std::shared_ptr<ShaderProgram>(new ShaderProgram(shader_path + ".vert", shader_path + ".frag", preprocess)));
 }
@@ -148,4 +149,15 @@ void window_resize_callback(GLFWwindow *window, int width, int height)
 void glfw_error_callback(int error, const char *description)
 {
 	std::cout << "GLFW Error: #" << error << ":\r" << description << std::endl;
+}
+
+void Engine::debug_print_renderable_data()
+{
+	auto data = window->renderer->get_batch_data();
+	std::cout << "[[----DEBUG BATCH DATA----]]" << std::endl;
+	for (auto entry : data)
+	{
+		std::cout << "\"" << entry.first << "\":\t" << std::to_string(entry.second) << std::endl;
+	}
+	std::cout << "[[--END DEBUG BATCH DATA--]]" << std::endl;
 }

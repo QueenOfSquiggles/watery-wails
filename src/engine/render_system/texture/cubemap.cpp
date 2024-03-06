@@ -1,4 +1,5 @@
 #include "cubemap.hpp"
+#include "engine/render_system/mesh/primitives.hpp"
 
 CubeMap::CubeMap(std::weak_ptr<TextureHDRI> hdri_equirectangular) : Texture()
 {
@@ -27,45 +28,52 @@ CubeMap::CubeMap(std::weak_ptr<TextureHDRI> hdri_equirectangular) : Texture()
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glm::mat4 capture_projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	glm::mat4 capture_view[] = {
-		glm::lookAt(glm::vec3{0, 0, 0}, glm::vec3{1, 0, 0}, glm::vec3{0, -1, 0}),
-		glm::lookAt(glm::vec3{0, 0, 0}, glm::vec3{-1, 0, 0}, glm::vec3{0, -1, 0}),
-		glm::lookAt(glm::vec3{0, 0, 0}, glm::vec3{0, 1, 0}, glm::vec3{0, 0, 1}),
-		glm::lookAt(glm::vec3{0, 0, 0}, glm::vec3{0, -1, 0}, glm::vec3{0, 0, -1}),
-		glm::lookAt(glm::vec3{0, 0, 0}, glm::vec3{0, 0, 1}, glm::vec3{0, -1, 0}),
-		glm::lookAt(glm::vec3{0, 0, 0}, glm::vec3{0, 0, -1}, glm::vec3{0, -1, 0}),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
 	};
 	auto shader_convert = std::shared_ptr<ShaderProgram>(new ShaderProgram{
 		"res/shader/conversion/rect2cube.vert",
 		"res/shader/conversion/rect2cube.frag",
 		false,
 	});
-
+	shader_convert->enable();
 	shader_convert->set_int("equirectangular_map", 0);
 	shader_convert->set_mat4("projection", capture_projection);
-	glActiveTexture(GL_TEXTURE0);
-
 	auto hdri = hdri_equirectangular.lock();
-	hdri->bind();
+	if (!hdri)
+	{
+		std::cerr << "Failed to get a lock on HDRI texture during cubemap initialization!" << std::endl;
+	}
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, hdri->get());
 
 	int previous_viewport[4];
 	glGetIntegerv(GL_VIEWPORT, previous_viewport);
+
 	glViewport(0, 0, width, height);
 	glBindFramebuffer(GL_FRAMEBUFFER, capture_fbo);
-	auto mesh = new Mesh("res/model/internal/simple_cube.gltf");
+
+	auto cube = new PrimitiveCube(1.0);
 	RenderContext ctx;
 	ctx.batch_name = "cubmap_conversion";
 	ctx.delta = 0;
 	ctx.program = shader_convert;
+
 	for (unsigned int i = 0; i < 6; i++)
 	{
 		shader_convert->set_mat4("view", capture_view[i]);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, id, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		mesh->render(ctx);
+		cube->render(ctx);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(previous_viewport[0], previous_viewport[1], previous_viewport[2], previous_viewport[3]);
+	shader_convert->disable();
 }
 
 void CubeMap::bind() { bind_slot(0); }
@@ -73,14 +81,13 @@ void CubeMap::unbind() { unbind_slot(0); }
 
 void CubeMap::bind_slot(unsigned int slot)
 {
-	glDepthFunc(GL_LEQUAL);
 	if (slot > 31)
 	{
 		std::cerr << "Texture slot index is above slot cap! Max value is " << (GL_TEXTURE31 - GL_TEXTURE0) << "!" << std::endl;
 		return;
 	}
 	glActiveTexture(GL_TEXTURE0 + slot);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, this->id);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, id);
 }
 
 void CubeMap::unbind_slot(unsigned int slot)
@@ -92,5 +99,4 @@ void CubeMap::unbind_slot(unsigned int slot)
 	}
 	glActiveTexture(GL_TEXTURE0 + slot);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	glDepthFunc(GL_LESS);
 }

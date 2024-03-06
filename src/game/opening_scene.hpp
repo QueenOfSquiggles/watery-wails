@@ -8,6 +8,7 @@
 #include "engine/render_system/resource_management/resource_factory.hpp"
 #include "engine/audio_system/audio.hpp"
 #include "engine/render_system/sky/skybox.hpp"
+#include "engine/scene/scene.hpp"
 
 #include <memory>
 #include <iostream>

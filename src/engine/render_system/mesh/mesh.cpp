@@ -19,6 +19,11 @@ unsigned int VertexDataAttribute::get_data_size()
 
 MeshSurface::MeshSurface(std::vector<float> vertex_data, std::vector<unsigned int> indices, std::vector<VertexDataAttribute> attributes, std::shared_ptr<Material> p_material) : material(p_material)
 {
+	load_data(vertex_data, indices, attributes, p_material);
+}
+void MeshSurface::load_data(std::vector<float> data, std::vector<unsigned int> indices, std::vector<VertexDataAttribute> attributes, std::shared_ptr<Material> p_material)
+{
+	this->material = p_material;
 	this->attributes = attributes.size();
 	this->index_count = indices.size();
 	glGenVertexArrays(1, &VAO);
@@ -28,7 +33,7 @@ MeshSurface::MeshSurface(std::vector<float> vertex_data, std::vector<unsigned in
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertex_data.size() * sizeof(float), vertex_data.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
@@ -49,6 +54,7 @@ MeshSurface::MeshSurface(std::vector<float> vertex_data, std::vector<unsigned in
 		offset += attrib.get_data_size();
 	}
 }
+
 MeshSurface::~MeshSurface()
 {
 	// std::cout << "Deleting mesh surface:" << std::endl
@@ -79,6 +85,7 @@ void Mesh::render(RenderContext ctx)
 		surf->render(ctx);
 	}
 }
+Mesh::Mesh() {}
 
 Mesh::Mesh(std::filesystem::path file)
 {

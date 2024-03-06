@@ -41,29 +41,39 @@ struct MeshSurfaceDataContainer
 	std::vector<VertexDataAttribute> attributes;
 	std::shared_ptr<Material> material;
 };
-
 class MeshSurface
 {
-	std::shared_ptr<Material> material;
-	unsigned int VAO, VBO, EBO, attributes, index_count;
+protected:
+	void load_data(std::vector<float> data, std::vector<unsigned int> indices,
+				   std::vector<VertexDataAttribute> attributes, std::shared_ptr<Material> p_material);
 
 public:
+	std::shared_ptr<Material> material;
+	unsigned int VAO, VBO, EBO, attributes, index_count;
+	MeshSurface() {}
 	MeshSurface(std::vector<float> data, std::vector<unsigned int> indices,
 				std::vector<VertexDataAttribute> attributes, std::shared_ptr<Material> p_material);
 
 	~MeshSurface();
-	void render(RenderContext ctx);
+	virtual void render(RenderContext ctx);
 };
 
+class SceneTree;
 class Mesh
 {
+
+protected:
+	friend class SceneTree; // allow scene tree to dispatch model loading in case of mesh data.
+
 	std::vector<std::shared_ptr<MeshSurface>> surfaces;
 	void process_assimp_node(aiNode *node, const aiScene *scene, std::filesystem::path file);
 	MeshSurfaceDataContainer load_surf_data_container(aiMesh *mesh, const aiScene *scene, std::filesystem::path file);
 	std::shared_ptr<Material> load_material(aiMaterial *mat, std::filesystem::path file);
 
+	Mesh();
+
 public:
 	Mesh(std::vector<std::shared_ptr<MeshSurface>> p_surfaces);
 	Mesh(std::filesystem::path file);
-	void render(RenderContext ctx);
+	virtual void render(RenderContext ctx);
 };

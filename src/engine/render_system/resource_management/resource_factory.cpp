@@ -79,3 +79,27 @@ std::shared_ptr<AudioData> ResourceFactory::load_audio(std::filesystem::path fil
 	}
 	return data;
 }
+
+std::shared_ptr<TextureHDRI> ResourceFactory::load_texture_hdri(std::filesystem::path file)
+{
+	ensure_instance();
+	if (auto search = instance->textures_hdri.find(file); search != instance->textures_hdri.end())
+	{
+		return search->second;
+	}
+	auto texture = std::shared_ptr<TextureHDRI>(new TextureHDRI(file));
+	instance->textures[file] = texture;
+	return texture;
+}
+std::shared_ptr<SkyBox> ResourceFactory::load_skybox(std::filesystem::path file)
+{
+	ensure_instance();
+	if (auto search = instance->skyboxes.find(file); search != instance->skyboxes.end())
+	{
+		return search->second;
+	}
+	auto hdri = load_texture_hdri(file);
+	auto skybox = std::shared_ptr<SkyBox>(new SkyBox(hdri));
+	instance->skyboxes[file] = skybox;
+	return skybox;
+}

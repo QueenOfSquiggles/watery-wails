@@ -9,12 +9,16 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include <functional>
+
 struct BatchEntry
 {
 	std::shared_ptr<ShaderProgram> program;
 	std::vector<std::shared_ptr<Renderable>> objects;
+	std::function<void(RenderContext)> setup_callback;
 };
 
+void default_render_batch_setup_callback(RenderContext ctx);
 class Renderer
 {
 	std::map<std::string, std::shared_ptr<BatchEntry>> batches;
@@ -31,11 +35,13 @@ public:
 	std::shared_ptr<Camera> camera;
 	Renderer();
 	std::shared_ptr<ShaderProgram> get_program_for(std::string batch_name);
-	void register_batch(std::string, std::shared_ptr<ShaderProgram> program);
+	void register_batch(std::string, std::shared_ptr<ShaderProgram> program, std::function<void(RenderContext)> setup_callback = default_render_batch_setup_callback);
 	void register_game_object(std::string batch_name, std::shared_ptr<Renderable> obj);
 
 	void render(double delta, double currtime);
 
 	void set_fov(float n_fov);
 	void on_window_resized(int n_width, int n_height);
+
+	std::map<std::string, unsigned int> get_batch_data();
 };

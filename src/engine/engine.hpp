@@ -30,8 +30,11 @@ public:
 	void start();
 	void load_object(std::shared_ptr<GameObject> obj, std::string render_group = "default");
 	void add_render_group(std::string name);
-	void add_render_group(std::string name, std::string shader_path, bool preprocess);
+	void add_render_group(std::string name, std::string shader_path, bool preprocess, std::function<void(RenderContext)> setup_callback);
 	void add_renderable(std::string batch, std::shared_ptr<Renderable> renderable);
+
+	void debug_print_renderable_data();
+
 	void quit();
 };
 

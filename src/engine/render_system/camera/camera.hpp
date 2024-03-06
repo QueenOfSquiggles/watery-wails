@@ -10,9 +10,12 @@
 constexpr glm::vec3 world_up = glm::vec3(0, 1, 0);
 #endif
 
+class SceneTree;
+
 struct Camera
 {
 private:
+	friend class SceneTree; // allow scene tree to modify matrices
 	glm::mat4 projection;
 	glm::mat4 view;
 

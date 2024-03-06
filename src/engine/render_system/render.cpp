@@ -8,7 +8,7 @@ Renderer::Renderer() : camera(new Camera())
 	batches = std::map<std::string, std::shared_ptr<BatchEntry>>();
 }
 
-void Renderer::register_batch(std::string batch_name, std::shared_ptr<ShaderProgram> program)
+void Renderer::register_batch(std::string batch_name, std::shared_ptr<ShaderProgram> program, std::function<void(RenderContext)> setup_callback)
 {
 	if (!program)
 	{
@@ -18,6 +18,7 @@ void Renderer::register_batch(std::string batch_name, std::shared_ptr<ShaderProg
 		new BatchEntry{
 			program,
 			{},
+			setup_callback,
 		});
 }
 void Renderer::register_game_object(std::string batch_name, std::shared_ptr<Renderable> obj)
@@ -31,40 +32,31 @@ void Renderer::register_game_object(std::string batch_name, std::shared_ptr<Rend
 void Renderer::render(double delta, double currtime)
 {
 	this->camera->update_transform();
+	RenderContext ctx{
+		nullptr,
+		"null",
+		delta,
+		currtime,
+		// lights
+		sun,
+		point_lights,
+		ambient_light,
+		specular_strength,
+		// camera
+		camera,
+	};
 	for (auto itr = this->batches.begin(); itr != this->batches.end(); itr++)
 	{
-		auto batch = itr->second;
-		batch->program->enable();
-		batch->program->set_float("environment.time", float(currtime));
-		batch->program->set_mat4("view_transform", camera->get_view_matrix());
-		batch->program->set_mat4("projection_transform", camera->get_projection_matrix());
-		batch->program->set_vec3("environment.camera_position", camera->position);
-		batch->program->set_vec3("environment.ambient_light", ambient_light.colour);
-		batch->program->set_vec3("sun.direction", sun.direction);
-		batch->program->set_vec3("sun.colour", sun.colour);
-		batch->program->set_float("material.specular_strength", specular_strength);
+		ctx.program = itr->second->program;
+		ctx.batch_name = itr->first;
 
-		// I really wish C++'s `auto` keyword worked like in rust
-		//	where it would use the context to determine the expected type
-		for (std::vector<PointLight>::size_type i = 0; i < point_lights.size(); i++)
-		{
-			auto idx = std::to_string(i);
-			auto light = point_lights[i];
-			batch->program->set_vec3("lights_point[" + idx + "].position", light.position);
-			batch->program->set_vec3("lights_point[" + idx + "].colour", light.colour);
-			batch->program->set_vec3("lights_point[" + idx + "].attenuation_factors", light.falloff_components);
-		}
-		batch->program->set_int("lights_active", point_lights.size());
-
-		RenderContext ctx{
-			batch->program,
-			itr->first,
-			delta};
-		for (auto o : batch->objects)
+		ctx.program->enable();
+		itr->second->setup_callback(ctx);
+		for (auto o : itr->second->objects)
 		{
 			o->render(ctx);
 		}
-		batch->program->disable();
+		ctx.program->disable();
 	}
 }
 
@@ -87,4 +79,39 @@ std::shared_ptr<ShaderProgram> Renderer::get_program_for(std::string batch_name)
 		return batch->second->program;
 	}
 	return nullptr;
+}
+
+std::map<std::string, unsigned int> Renderer::get_batch_data()
+{
+	std::map<std::string, unsigned int> data;
+	for (auto entry : batches)
+	{
+		data[entry.first] = entry.second->objects.size();
+	}
+	return data;
+}
+
+void default_render_batch_setup_callback(RenderContext ctx)
+{
+
+	ctx.program->set_float("environment.time", float(ctx.currtime));
+	ctx.program->set_mat4("view_transform", ctx.cam->get_view_matrix());
+	ctx.program->set_mat4("projection_transform", ctx.cam->get_projection_matrix());
+	ctx.program->set_vec3("environment.camera_position", ctx.cam->position);
+	ctx.program->set_vec3("environment.ambient_light", ctx.ambient_light.colour);
+	ctx.program->set_vec3("sun.direction", ctx.sun.direction);
+	ctx.program->set_vec3("sun.colour", ctx.sun.colour);
+	ctx.program->set_float("material.specular_strength", ctx.specular_strength);
+
+	// I really wish C++'s `auto` keyword worked like in rust
+	//	where it would use the context to determine the expected type
+	for (std::vector<PointLight>::size_type i = 0; i < ctx.point_lights.size(); i++)
+	{
+		auto idx = std::to_string(i);
+		auto light = ctx.point_lights[i];
+		ctx.program->set_vec3("lights_point[" + idx + "].position", light.position);
+		ctx.program->set_vec3("lights_point[" + idx + "].colour", light.colour);
+		ctx.program->set_vec3("lights_point[" + idx + "].attenuation_factors", light.falloff_components);
+	}
+	ctx.program->set_int("lights_active", ctx.point_lights.size());
 }

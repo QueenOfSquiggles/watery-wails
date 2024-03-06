@@ -22,3 +22,19 @@ public:
 
 	virtual void render(RenderContext ctx) override;
 };
+
+template <class T>
+class GameObjectContainer : public GameObject
+{
+public:
+	std::shared_ptr<T> item;
+
+	GameObjectContainer(std::shared_ptr<T> item)
+	{
+		this->item = item;
+	}
+
+	inline virtual void render(RenderContext ctx) override
+	{ // intentionally empty
+	}
+};
