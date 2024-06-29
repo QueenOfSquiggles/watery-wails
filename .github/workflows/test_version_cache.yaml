@@ -20,7 +20,7 @@ jobs:
               sha="${{ github.sha }}"
               echo "game-version=${sha::7}" >> $GITHUB_OUTPUT
             else
-              echo "game-version=${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
+              echo "game-version=COMMIT-${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
             fi
             echo "$GITHUB_OUTPUT"
   push_cached:
