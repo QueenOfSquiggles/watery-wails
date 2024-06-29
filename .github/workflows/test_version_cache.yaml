@@ -10,6 +10,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: olegtarasov/get-tag@v2.1.2
+        id: get_version
       - name: cache version
         run: |
             echo 'pub const GAME_VERSION: &str = "${{ steps.get_version.outputs.tag }} - DEMO";' > src/gen/mod.rs
