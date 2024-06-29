@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
       - name: cache version
         run: |
             echo 'pub const GAME_VERSION: &str = "${ steps.get_version.outputs.tag } - DEMO";' > ./src/gen/mod.rs
