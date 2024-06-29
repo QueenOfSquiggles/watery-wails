@@ -16,8 +16,9 @@ jobs:
         id: get_version
       - name: ensure-version
         run: |
+
             if [[ -z "${{ steps.get_version.outputs.tag }}" ]]; then
-              echo "game-version=${ ${{ GITHUB_SHA }}::7 }" >> $GITHUB_OUTPUT
+              echo "game-version=${ '$GITHUB_SHA'::7 }" >> $GITHUB_OUTPUT
             else
               echo "game-version=${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
             fi
