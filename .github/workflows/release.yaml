@@ -30,7 +30,7 @@ jobs:
           lfs: ${{ env.use_git_lfs }}
       - name: cache version
         run: |
-          echo 'pub const GAME_VERSION: &str = "${ steps.get_version.outputs.tag } - DEMO";' > ./src/gen/mod.rs
+          echo 'pub const GAME_VERSION: &str = "${{ steps.get_version.outputs.tag }} - DEMO";' > ./src/gen/mod.rs
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -43,18 +43,18 @@ jobs:
 
       - name: Prepare package
         run: |
-          wasm-bindgen --no-typescript --out-name bevy_game --out-dir wasm --target web target/wasm32-unknown-unknown/release/${{ env.binary }}-${ steps.get_version.outputs.tag }.wasm
+          wasm-bindgen --no-typescript --out-name bevy_game --out-dir wasm --target web target/wasm32-unknown-unknown/release/${{ env.binary }}-${{ steps.get_version.outputs.tag }}.wasm
           cp -r assets wasm/ || true # Try to copy, but ignore if it can't copy if source directory does not exist 
 
       - name: Package as a zip
         working-directory: ./wasm
         run: |
-          zip --recurse-paths ../${{ env.binary }}-${ steps.get_version.outputs.tag }.zip .
+          zip --recurse-paths ../${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip .
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
         with:
-          path: ${{ env.binary }}-${ steps.get_version.outputs.tag }.zip
+          path: ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip
           name: wasm
           retention-days: 1
 
@@ -63,7 +63,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.binary }}-${ steps.get_version.outputs.tag }.zip
+          file: ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip
           asset_name: ${{ env.binary }}-wasm-${{ steps.get_version.outputs.tag }}.zip
           tag: ${{ github.ref }}
           overwrite: true
@@ -98,12 +98,12 @@ jobs:
       - name: Package as a zip
         working-directory: ./linux
         run: |
-          zip --recurse-paths ../${{ env.binary }}-${ steps.get_version.outputs.tag }.zip .
+          zip --recurse-paths ../${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip .
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
         with:
-          path: ${{ env.binary }}-${ steps.get_version.outputs.tag }.zip
+          path: ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip
           name: linux
           retention-days: 1
 
@@ -112,7 +112,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.binary }}-${ steps.get_version.outputs.tag }.zip
+          file: ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip
           asset_name: ${{ env.binary }}-linux-${{ steps.get_version.outputs.tag }}.zip
           tag: ${{ github.ref }}
           overwrite: true
@@ -138,18 +138,18 @@ jobs:
       - name: Prepare package
         run: |
           mkdir windows
-          cp target/x86_64-pc-windows-msvc/release/${{ env.binary }}-${ steps.get_version.outputs.tag }.exe windows/
+          cp target/x86_64-pc-windows-msvc/release/${{ env.binary }}-${{ steps.get_version.outputs.tag }}.exe windows/
           mkdir assets -ea 0 # create the assets directory if it does not exist, it will get ignored in the zip if empty
           cp -r assets windows/
 
       - name: Package as a zip
         run: |
-          Compress-Archive -Path windows/* -DestinationPath ${{ env.binary }}-${ steps.get_version.outputs.tag }.zip
+          Compress-Archive -Path windows/* -DestinationPath ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
         with:
-          path: ${{ env.binary }}-${ steps.get_version.outputs.tag }.zip
+          path: ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip
           name: windows
           retention-days: 1
 
@@ -158,7 +158,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.binary }}-${ steps.get_version.outputs.tag }.zip
+          file: ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.zip
           asset_name: ${{ env.binary }}-windows-${{ steps.get_version.outputs.tag }}.zip
           tag: ${{ github.ref }}
           overwrite: true
@@ -187,10 +187,10 @@ jobs:
 
       - name: Prepare Package
         run: |
-          mkdir -p ${{ env.binary }}-${ steps.get_version.outputs.tag }.app/Contents/MacOS
-          cp target/x86_64-apple-darwin/release/${{ env.binary }} ${{ env.binary }}-${ steps.get_version.outputs.tag }.app/Contents/MacOS/
-          cp -r assets ${{ env.binary }}-${ steps.get_version.outputs.tag }.app/Contents/MacOS/ || true # Try to copy, but ignore if it can't copy if source directory does not exist
-          hdiutil create -fs HFS+ -volname "${{ env.binary }}" -srcfolder ${{ env.binary }}-${ steps.get_version.outputs.tag }.app ${{ env.binary }}-macOS-intel.dmg
+          mkdir -p ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.app/Contents/MacOS
+          cp target/x86_64-apple-darwin/release/${{ env.binary }} ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.app/Contents/MacOS/
+          cp -r assets ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.app/Contents/MacOS/ || true # Try to copy, but ignore if it can't copy if source directory does not exist
+          hdiutil create -fs HFS+ -volname "${{ env.binary }}" -srcfolder ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.app ${{ env.binary }}-macOS-intel.dmg
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
@@ -233,10 +233,10 @@ jobs:
 
       - name: Prepare Package
         run: |
-          mkdir -p ${{ env.binary }}-${ steps.get_version.outputs.tag }.app/Contents/MacOS
-          cp target/aarch64-apple-darwin/release/${{ env.binary }} ${{ env.binary }}-${ steps.get_version.outputs.tag }.app/Contents/MacOS/
-          cp -r assets ${{ env.binary }}-${ steps.get_version.outputs.tag }.app/Contents/MacOS/ || true # Try to copy, but ignore if it can't copy if source directory does not exist
-          hdiutil create -fs HFS+ -volname "${{ env.binary }}-macOS-apple-silicon" -srcfolder ${{ env.binary }}-${ steps.get_version.outputs.tag }.app ${{ env.binary }}-macOS-apple-silicon.dmg
+          mkdir -p ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.app/Contents/MacOS
+          cp target/aarch64-apple-darwin/release/${{ env.binary }} ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.app/Contents/MacOS/
+          cp -r assets ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.app/Contents/MacOS/ || true # Try to copy, but ignore if it can't copy if source directory does not exist
+          hdiutil create -fs HFS+ -volname "${{ env.binary }}-macOS-apple-silicon" -srcfolder ${{ env.binary }}-${{ steps.get_version.outputs.tag }}.app ${{ env.binary }}-macOS-apple-silicon.dmg
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
