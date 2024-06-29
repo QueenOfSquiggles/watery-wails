@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 use bevy_tweening::TweeningPlugin;
 use game::GamePlugin;
+use gen::GAME_VERSION;
 use haalka::HaalkaPlugin;
 
 mod game;
 mod gen;
 
 fn main() {
+    info!("Watery Wails '{}' starting", GAME_VERSION);
     let mut app = App::new();
     #[cfg(target_family = "wasm")]
     {
