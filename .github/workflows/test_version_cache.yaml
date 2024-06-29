@@ -8,7 +8,7 @@ jobs:
   test_cache:
     runs-on: ubuntu-latest
     outputs:
-      should-upload: ${{ steps.ensure-version.outputs.game-version }}
+      game-version: ${{ steps.ensure-version.outputs.game-version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -29,5 +29,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: cache version
         run: |
-            echo 'pub const GAME_VERSION: &str = "${{ needs.test_cache.outputs.should-upload }}";' > src/gen/mod.rs
+            echo 'pub const GAME_VERSION: &str = "${{ needs.test_cache.outputs.game-version }}";' > src/gen/mod.rs
             cat src/gen/mod.rs
