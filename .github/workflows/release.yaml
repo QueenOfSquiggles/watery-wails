@@ -28,9 +28,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: ${{ env.use_git_lfs }}
+      - id: ensure-version
+        run: |
+              if [[ -z "${{ steps.get_version.outputs.tag }}" ]]; then
+                sha="${{ github.sha }}"
+                echo "game-version=${sha::7}" >> $GITHUB_OUTPUT
+              else
+                echo "game-version=COMMIT-${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
+              fi
+              echo "$GITHUB_OUTPUT"
       - name: cache version
         run: |
-          echo 'pub const GAME_VERSION: &str = "${{ steps.get_version.outputs.tag }} - DEMO";' > ./src/gen/mod.rs
+          echo 'pub const GAME_VERSION: &str = "${{ steps.ensure-version.outputs.game-version }}";' > src/gen/mod.rs
+          cat src/gen/mod.rs
+        
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -78,6 +89,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: ${{ env.use_git_lfs }}
+      - id: ensure-version
+        run: |
+              if [[ -z "${{ steps.get_version.outputs.tag }}" ]]; then
+                sha="${{ github.sha }}"
+                echo "game-version=${sha::7}" >> $GITHUB_OUTPUT
+              else
+                echo "game-version=COMMIT-${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
+              fi
+              echo "$GITHUB_OUTPUT"
+      - name: cache version
+        run: |
+          echo 'pub const GAME_VERSION: &str = "${{ steps.ensure-version.outputs.game-version }}";' > src/gen/mod.rs
+          cat src/gen/mod.rs
+  
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-gnu
@@ -127,6 +152,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: ${{ env.use_git_lfs }}
+      - id: ensure-version
+        run: |
+            if [[ -z "${{ steps.get_version.outputs.tag }}" ]]; then
+              sha="${{ github.sha }}"
+              echo "game-version=${sha::7}" >> $GITHUB_OUTPUT
+            else
+              echo "game-version=COMMIT-${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
+            fi
+            echo "$GITHUB_OUTPUT"
+      - name: cache version
+        run: |
+          echo 'pub const GAME_VERSION: &str = "${{ steps.ensure-version.outputs.game-version }}";' > src/gen/mod.rs
+          cat src/gen/mod.rs
+  
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
@@ -173,6 +212,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: ${{ env.use_git_lfs }}
+      - id: ensure-version
+        run: |
+            if [[ -z "${{ steps.get_version.outputs.tag }}" ]]; then
+              sha="${{ github.sha }}"
+              echo "game-version=${sha::7}" >> $GITHUB_OUTPUT
+            else
+              echo "game-version=COMMIT-${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
+            fi
+            echo "$GITHUB_OUTPUT"
+      - name: cache version
+        run: |
+          echo 'pub const GAME_VERSION: &str = "${{ steps.ensure-version.outputs.game-version }}";' > src/gen/mod.rs
+          cat src/gen/mod.rs
+  
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-apple-darwin
@@ -222,6 +275,20 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
+      - id: ensure-version
+        run: |
+              if [[ -z "${{ steps.get_version.outputs.tag }}" ]]; then
+                sha="${{ github.sha }}"
+                echo "game-version=${sha::7}" >> $GITHUB_OUTPUT
+              else
+                echo "game-version=COMMIT-${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
+              fi
+              echo "$GITHUB_OUTPUT"
+      - name: cache version
+        run: |
+          echo 'pub const GAME_VERSION: &str = "${{ steps.ensure-version.outputs.game-version }}";' > src/gen/mod.rs
+          cat src/gen/mod.rs
+  
       - name: Environment 
         # macOS 11 was the first version to support ARM
         run: |
