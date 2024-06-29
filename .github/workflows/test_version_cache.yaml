@@ -17,7 +17,7 @@ jobs:
       - name: ensure-version
         run: |
             if [[ -z "${{ steps.get_version.outputs.tag }}" ]]; then
-              echo "game-version=$GITHUB_SHA" >> $GITHUB_OUTPUT
+              echo "game-version=${ GITHUB_SHA }" >> $GITHUB_OUTPUT
             else
               echo "game-version=${{ steps.get_version.outputs.tag }}" >> $GITHUB_OUTPUT
             fi
@@ -26,6 +26,7 @@ jobs:
     needs:
       - test_cache
     steps:
+      - uses: actions/checkout@v4
       - name: cache version
         run: |
             echo 'pub const GAME_VERSION: &str = "${{ needs.test_cache.outputs.should-upload }}";' > src/gen/mod.rs
