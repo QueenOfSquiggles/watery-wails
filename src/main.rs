@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 use bevy_tweening::TweeningPlugin;
+use game::GamePlugin;
 use haalka::HaalkaPlugin;
+
+mod game;
+mod gen;
 
 fn main() {
     let mut app = App::new();
@@ -11,8 +15,9 @@ fn main() {
         app = app.insert_resource(AssetMetaCheck::Never);
     }
     app.add_plugins(DefaultPlugins)
-        .add_plugins(bevy_panic_handler::PanicHandler::new().build())
-        .add_plugins(TweeningPlugin)
-        .add_plugins(HaalkaPlugin)
+        .add_plugins(bevy_panic_handler::PanicHandler::new().build()) // readable panics
+        .add_plugins(TweeningPlugin) // Tweens
+        .add_plugins(HaalkaPlugin) // GUI layouting
+        .add_plugins(GamePlugin) // game systems & data
         .run();
 }
