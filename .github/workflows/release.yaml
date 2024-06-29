@@ -27,7 +27,7 @@ jobs:
         id: get_version
       - name: cache version
         run: |
-          echo 'pub const GAME_VERSION: &str = "${ steps.get_version.outputs.tag } - DEMO";' > src/gen/mod.rs
+          echo 'pub const GAME_VERSION: &str = "${ steps.get_version.outputs.tag } - DEMO";' > ./src/gen/mod.rs
       - uses: actions/checkout@v4
         with:
           lfs: ${{ env.use_git_lfs }}
