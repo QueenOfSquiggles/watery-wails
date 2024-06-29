@@ -1,0 +1,29 @@
+[package]
+name = "watery-wails"
+version = "0.1.0"
+edition = "2021"
+
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
+
+[dependencies]
+bevy = "0.13.2"
+bevy-panic-handler = "2.2.0"
+bevy-steamworks = "0.11.0"
+bevy_hanabi = "0.11.0"
+bevy_rand = "0.6.0"
+bevy_tweening = "0.10.0"
+bevy_water = "0.13.1"
+haalka = "0.1.0"
+leafwing-input-manager = "0.13.3"
+serde = "1.0.203"
+webbrowser = "1.0.1"
+
+[features]
+# theoretically this will only enable dynamic linking in the `dev` profile, which should speed up development iterations without affecting release builds
+dev = ["bevy/dynamic_linking"]
