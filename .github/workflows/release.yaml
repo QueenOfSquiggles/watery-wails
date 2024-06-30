@@ -7,9 +7,9 @@ on:
       - '*'
 
 env:
-  # update with the name of the main binary
-  binary: watery-wails
-  add_binaries_to_github_release: true
+  # update with the name of the main binary (for future reference, it has to match what's in the Cargo.toml exactly!)
+  binary: watery-wails 
+  add_binaries_to_github_release: false
   itch_target: queenofsquiggles/watery-wails-closed-beta
 
   # Before enabling LFS, please take a look at GitHub's documentation for costs and quota limits:
@@ -52,7 +52,10 @@ jobs:
         run: |
           echo 'pub const GAME_VERSION: &str = "${{ needs.validate-version-string.outputs.version }}";' > src/gen/mod.rs
           cat src/gen/mod.rs
-        
+      - name: configure pkg-config
+        run: |
+          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH
+          export PKG_CONFIG_SYSROOT_DIR=/
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
