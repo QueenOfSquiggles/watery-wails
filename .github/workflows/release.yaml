@@ -52,10 +52,9 @@ jobs:
         run: |
           echo 'pub const GAME_VERSION: &str = "${{ needs.validate-version-string.outputs.version }}";' > src/gen/mod.rs
           cat src/gen/mod.rs
-      - name: configure pkg-config
-        run: |
-          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH
-          export PKG_CONFIG_SYSROOT_DIR=/
+      - name: install dependencies
+        run:
+          sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libglib-2.0
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -113,7 +112,7 @@ jobs:
           targets: x86_64-unknown-linux-gnu
       - name: install dependencies
         run: |
-          sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+          sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libglib-2.0
 
       - name: Build
         run: |
