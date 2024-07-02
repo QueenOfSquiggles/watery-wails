@@ -63,7 +63,7 @@ jobs:
           cargo install wasm-bindgen-cli
       - name: Build
         run: |
-          exportb PKG_CONFIG_SYSROOT_DIR=/
+          export PKG_CONFIG_SYSROOT_DIR=/
           cargo build --release --target wasm32-unknown-unknown
 
       - name: Prepare package
