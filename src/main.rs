@@ -17,7 +17,6 @@ fn main() {
         app = app.insert_resource(AssetMetaCheck::Never);
     }
     app.add_plugins(DefaultPlugins)
-        .add_plugins(bevy_panic_handler::PanicHandler::new().build()) // readable panics
         .add_plugins(TweeningPlugin) // Tweens
         .add_plugins(HaalkaPlugin) // GUI layouting
         .add_plugins(GamePlugin) // game systems & data
