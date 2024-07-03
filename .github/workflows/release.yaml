@@ -79,7 +79,7 @@ jobs:
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
         with:
-          path: ${{ env.binary }}.zip
+          path: ${{ env.binary }}-${{ needs.validate-version-string.outputs.version }}.zip
           name: wasm
           retention-days: 1
 
@@ -123,7 +123,7 @@ jobs:
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
         with:
-          path: ${{ env.binary }}.zip
+          path: ${{ env.binary }}-${{ needs.validate-version-string.outputs.version }}.zip
           name: linux
           retention-days: 1
 
@@ -164,7 +164,7 @@ jobs:
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
         with:
-          path: ${{ env.binary }}.zip
+          path: ${{ env.binary }}-${{ needs.validate-version-string.outputs.version }}.zip
           name: windows
           retention-days: 1
 
@@ -241,12 +241,12 @@ jobs:
           mkdir -p ${{ env.binary }}.app/Contents/MacOS
           cp target/aarch64-apple-darwin/release/${{ env.binary }} ${{ env.binary }}.app/Contents/MacOS/
           cp -r assets ${{ env.binary }}.app/Contents/MacOS/ || true # Try to copy, but ignore if it can't copy if source directory does not exist
-          hdiutil create -fs HFS+ -volname "${{ env.binary }}-${{ needs.validate-version-string.outputs.version }}-macOS-apple-silicon" -srcfolder ${{ env.binary }}.app ${{ env.binary }}-macOS-apple-silicon.dmg
+          hdiutil create -fs HFS+ -volname "${{ env.binary }}-${{ needs.validate-version-string.outputs.version }}-macOS-apple-silicon" -srcfolder ${{ env.binary }}-${{ needs.validate-version-string.outputs.version }}.app ${{ env.binary }}-${{ needs.validate-version-string.outputs.version }}-macOS-apple-silicon.dmg
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
         with:
-          path: ${{ env.binary }}-macOS-apple-silicon.dmg
+          path: ${{ env.binary }}-${{ needs.validate-version-string.outputs.version }}-macOS-apple-silicon.dmg
           name: macOS-apple-silicon
           retention-days: 1
 
