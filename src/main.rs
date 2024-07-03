@@ -16,6 +16,11 @@ fn main() {
         use bevy::asset::AssetMetaCheck;
         app = app.insert_resource(AssetMetaCheck::Never);
     }
+    #[cfg(not(target_family="wasm"))]
+    {
+    	// include for all desktop builds
+    	//TODO: init bevy-panic-handler and steamworks
+    }
     app.add_plugins(DefaultPlugins)
         .add_plugins(TweeningPlugin) // Tweens
         .add_plugins(HaalkaPlugin) // GUI layouting
