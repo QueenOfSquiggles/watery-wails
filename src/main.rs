@@ -29,6 +29,7 @@ fn main() {
 
 fn startup_prints(mut commands: Commands) {
     info!("Watery Wails '{}' starting", GAME_VERSION);
+    info!("Test line!");
 
     commands.spawn(HtnAgent);
 }
