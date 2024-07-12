@@ -1,9 +1,44 @@
-# for Linux
+
+
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
-rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+rustflags = [
+  # LLD linker
+  # "-Clink-arg=-fuse-ld=lld",
 
+  # Mold linker
+  "-Clink-arg=-fuse-ld=/usr/bin/mold",
 
-# for Windows
+  # Nightly
+  "-Zshare-generics=y",
+  "-Zthreads=0",
+]
+
+[target.x86_64-apple-darwin]
+rustflags = [
+  # LLD linker
+  # "-Clink-arg=-fuse-ld=/usr/local/opt/llvm/bin/ld64.lld",
+
+  # Nightly
+  # "-Zshare-generics=y",
+  # "-Zthreads=0",
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+  # LLD linker
+  # "-Clink-arg=-fuse-ld=/opt/homebrew/opt/llvm/bin/ld64.lld",
+
+  # Nightly
+  # "-Zshare-generics=y",
+  # "-Zthreads=0",
+]
+
 [target.x86_64-pc-windows-msvc]
+# LLD linker
 linker = "rust-lld.exe"
+rustflags = [
+  # Nightly
+  # "-Zshare-generics=y",
+  # "-Zthreads=0",
+]
