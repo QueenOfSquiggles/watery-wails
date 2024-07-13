@@ -10,12 +10,12 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.14.0" }
 bevy_htnp = { path = "bevy_htnp" }
-bevy_tweening = "0.10.0"
-leafwing-input-manager = "0.13.3"
+bevy_tweening = "0.11.0"
+leafwing-input-manager = "0.14.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-bevy-steamworks = "0.11.0"
-bevy-panic-handler = "2.2.0"
+bevy-steamworks = { path = "bevy_steamworks" }
+# bevy-panic-handler = "2.2.0"
 
 [profile.dev]
 # debug = 1
