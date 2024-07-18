@@ -1,56 +1,106 @@
-use crate::data::World;
+use crate::data::TruthSet;
 use bevy::{ecs::system::EntityCommands, prelude::*, utils::HashMap};
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    marker::PhantomData,
+    sync::{Arc, RwLock},
+};
 
-// TODO: figure out a way to use regular function pointers? (fn instead of Fn)
-type HtnTaskComponentAdderFunc = Box<dyn Fn(&mut EntityCommands)>;
+pub trait TaskData: Sync + Send {
+    fn preconditions(&self) -> &TruthSet;
+    fn postconditions(&self) -> &TruthSet;
+    fn add(&self, entity: &mut EntityCommands);
+    fn remove(&self, entity: &mut EntityCommands);
+}
+
+type TaskStorage = Arc<RwLock<Box<dyn TaskData>>>;
 #[derive(Resource, Default)]
-pub struct GlobalHtnTaskRegistry(pub HashMap<String, HtnTaskComponentAdderFunc>);
+pub struct GlobalHtnTaskRegistry(pub HashMap<String, TaskStorage>);
 
 impl GlobalHtnTaskRegistry {
-    pub fn task<S, C>(&mut self, name: S, comp: C)
+    pub fn task<C, S>(&mut self, name: S, precon: Option<TruthSet>, postcon: Option<TruthSet>)
     where
         S: Into<String>,
-        C: Component + Clone,
+        C: Component + Default,
     {
-        self.0.insert(
-            name.into(),
-            Box::new(move |cmd| {
-                cmd.insert(comp.clone());
-            }),
-        );
+        let comp =
+            SimpleTaskData::<C>::new(precon.unwrap_or_default(), postcon.unwrap_or_default());
+        self.0
+            .insert(name.into(), Arc::new(RwLock::new(Box::new(comp))));
     }
 
-    pub fn tasks<S, C>(&mut self, collection: impl Iterator<Item = (S, C)>)
+    pub fn custom_task<S>(&mut self, name: S, data: Box<dyn TaskData>)
     where
         S: Into<String>,
-        C: Component + Clone,
     {
-        for (name, comp) in collection {
-            self.task(name, comp);
+        self.0.insert(name.into(), Arc::new(RwLock::new(data)));
+    }
+}
+
+/// For instances where pre and post conditions are static and the task is accomplished through a default instance of a component, this can be used to make creation of new tasks much easier.
+struct SimpleTaskData<C>
+where
+    C: Component,
+{
+    precon: TruthSet,
+    postcon: TruthSet,
+    phantom: PhantomData<C>,
+}
+
+impl<C> SimpleTaskData<C>
+where
+    C: Component + Default,
+{
+    fn new(precon: TruthSet, postcon: TruthSet) -> Self {
+        Self {
+            precon,
+            postcon,
+            phantom: PhantomData,
         }
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Preconditions(pub World);
+impl<C> TaskData for SimpleTaskData<C>
+where
+    C: Component + Default,
+{
+    fn preconditions(&self) -> &TruthSet {
+        &self.precon
+    }
 
-#[derive(Clone, Debug)]
-pub struct Postconditions(pub World);
+    fn postconditions(&self) -> &TruthSet {
+        &self.postcon
+    }
 
-#[derive(Clone, Debug)]
-pub struct TaskComponent(pub String);
+    fn add(&self, entity: &mut EntityCommands) {
+        entity.insert(C::default());
+    }
+
+    fn remove(&self, entity: &mut EntityCommands) {
+        entity.remove::<C>();
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Task {
-    Primitive(Preconditions, TaskComponent, Postconditions),
+    Primitive {
+        precon: TruthSet,
+        postcon: TruthSet,
+        name: String,
+    },
     Macro(Vec<Task>),
 }
 
 impl Task {
-    pub fn decompose(&self) -> Vec<TaskComponent> {
+    pub fn decompose(&self) -> Vec<Task> {
         match self {
-            Task::Primitive(_, task, _) => vec![task.clone()],
+            Task::Primitive {
+                precon: _,
+                postcon: _,
+                name: _,
+            } => {
+                vec![self.clone()]
+            }
             Task::Macro(m) => m
                 .iter()
                 .map(|p| p.decompose())
@@ -65,9 +115,13 @@ impl Task {
         }
     }
 
-    pub fn postconditions(&self) -> World {
+    pub fn postconditions(&self) -> TruthSet {
         match self {
-            Task::Primitive(_, _, post) => post.clone().into(),
+            Task::Primitive {
+                precon: _,
+                postcon,
+                name: _,
+            } => postcon.clone(),
             Task::Macro(steps) => steps
                 .into_iter()
                 .map(|t| t.postconditions())
@@ -76,9 +130,13 @@ impl Task {
         }
     }
 
-    pub fn preconditions(&self) -> World {
+    pub fn preconditions(&self) -> TruthSet {
         match self {
-            Task::Primitive(_, _, post) => post.clone().into(),
+            Task::Primitive {
+                precon,
+                postcon: _,
+                name: _,
+            } => precon.clone().into(),
             Task::Macro(steps) => steps
                 .into_iter()
                 .rev()
@@ -86,16 +144,5 @@ impl Task {
                 .reduce(|agg, item| agg.concat(&item))
                 .unwrap_or_default(),
         }
-    }
-}
-
-impl From<Preconditions> for World {
-    fn from(value: Preconditions) -> Self {
-        value.0
-    }
-}
-impl From<Postconditions> for World {
-    fn from(value: Postconditions) -> Self {
-        value.0
     }
 }

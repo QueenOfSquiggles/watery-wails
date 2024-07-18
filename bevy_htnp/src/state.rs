@@ -1,30 +1,49 @@
-use std::{collections::VecDeque, fmt::Debug, rc::Rc};
+use std::{collections::VecDeque, fmt::Debug};
 
 use bevy::prelude::*;
+use rand::{seq::IteratorRandom, thread_rng};
 
-use crate::{
-    data::World,
-    tasks::{Task, TaskComponent},
-};
+use crate::{data::TruthSet, tasks::Task};
 
 #[derive(Component, Default)]
 pub struct HtnAgent {
     goals: Vec<Goal>,
     current_plan: Option<Plan>,
     available_tasks: Vec<Task>,
+    evaluator: GoalEvaluation,
     possibilities: PossibilitySpace,
+}
+
+#[derive(Default)]
+pub enum GoalEvaluation {
+    Random,
+    // TODO: how to handle weighted random? Or just rely on custom function?
+    // RandomWeighted,
+    #[default]
+    Top,
+    Custom(fn(&Vec<Goal>) -> Option<Goal>),
+}
+
+impl GoalEvaluation {
+    pub fn next_goal(&self, goals: &Vec<Goal>) -> Option<Goal> {
+        match *self {
+            GoalEvaluation::Top => goals.first().cloned(),
+            GoalEvaluation::Custom(f) => f(goals),
+            GoalEvaluation::Random => goals.iter().choose(&mut thread_rng()).cloned(),
+        }
+    }
 }
 
 #[derive(Component)]
 pub struct HtnAgentWorld {
-    pub world: World,
+    pub world: TruthSet,
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct Goal(World);
+pub struct Goal(TruthSet);
 
 #[derive(Default)]
-pub struct Plan(VecDeque<TaskComponent>);
+pub struct Plan(VecDeque<Task>);
 
 #[derive(Default, Debug)]
 struct PossibilitySpace(Vec<(Plan, Vec<Goal>)>);
@@ -41,18 +60,25 @@ impl HtnAgent {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn add_task(&mut self, task: Task) {
+    pub fn add_task(&mut self, task: Task) -> &mut Self {
         self.available_tasks.push(task);
+        self
+    }
+
+    pub fn add_goal(&mut self, goal: Goal) -> &mut Self {
+        self.goals.push(goal);
+        self
     }
     pub fn has_plan(&self) -> bool {
         self.current_plan.is_some()
     }
 
-    pub fn rebuild_possibility_space(&mut self, world: World) {
+    pub fn rebuild_possibility_space(&mut self, world: crate::data::TruthSet) {
+        // FIXME: method doesn't seem to accomplish expected goal!
         // TODO: does this method need to be broken up more?
         self.possibilities.0.clear();
         let mut plan_indexer: usize = 0;
-        let mut planning = Vec::<(usize, Vec<Task>, Vec<World>, Option<Goal>)>::new();
+        let mut planning = Vec::<(usize, Vec<Task>, Vec<TruthSet>, Option<Goal>)>::new();
         // load initial available tasks into planning set
         let initial_tasks = self.possible_tasks(&world);
         for t in initial_tasks {
@@ -64,7 +90,7 @@ impl HtnAgent {
         while !planning.is_empty() {
             // iteration caching
             let mut invalid_paths = Vec::<usize>::new();
-            let mut n_plans = Vec::<(usize, Vec<Task>, Vec<World>, Option<Goal>)>::new();
+            let mut n_plans = Vec::<(usize, Vec<Task>, Vec<TruthSet>, Option<Goal>)>::new();
 
             // for each current path, find valid next step and check that the world remains valid
             for (id, tasks, world_stack, goal_met) in planning.iter() {
@@ -78,7 +104,7 @@ impl HtnAgent {
                 // if the goal is met, extract into possibility space, along with all goals that are met by this plan.
                 if goal_met.is_some() {
                     invalid_paths.push(*id); // still purge since we already reached an end
-                    let mut plan_items = VecDeque::<TaskComponent>::new();
+                    let mut plan_items = VecDeque::<Task>::new();
                     for t in tasks {
                         plan_items.append(&mut t.decompose().clone().into())
                     }
@@ -131,7 +157,7 @@ impl HtnAgent {
         println!("Possibility Space: {:#?}", self.possibilities);
     }
 
-    fn possible_tasks(&self, world: &World) -> Vec<Task> {
+    fn possible_tasks(&self, world: &TruthSet) -> Vec<Task> {
         self.available_tasks
             .clone()
             .into_iter()
@@ -145,46 +171,50 @@ mod tests {
 
     use bevy::prelude::*;
 
-    use crate::{
-        data::{Truth, World},
-        tasks::{GlobalHtnTaskRegistry, Postconditions, Preconditions, Task, TaskComponent},
-    };
+    use crate::tasks::{GlobalHtnTaskRegistry, Postconditions, Preconditions, Task, TaskComponent};
 
-    use super::HtnAgent;
+    use super::*;
 
     #[test]
     fn possibility_space() {
-        let mut agent = HtnAgent::default();
-        let mut world = crate::data::World::new();
-        world.insert("hungry", Truth::Bool(true));
-        world.insert("thirsty", Truth::Bool(false));
+        let mut world = crate::data::TruthSet::new();
+        world.insert("hungry", true.into());
+
+        let precon: TruthSet = vec![("hungry", true.into())].into_iter().into();
+        let postcon: TruthSet = vec![("hungry", true.into())].into_iter().into();
 
         let mut task_registry = GlobalHtnTaskRegistry::default();
 
-        task_registry.task("test", TestingTask);
-        agent.add_task(Task::Primitive(
-            Preconditions(vec![("hungry", Truth::Bool(true))].into_iter().into()),
-            TaskComponent("test".into()),
-            Postconditions(vec![("hungry", Truth::Bool(true))].into_iter().into()),
-        ));
+        task_registry.task::<TestingTask, _>("test", Some(precon), Some(postcon));
 
-        let app = App::new()
-            .add_plugins(MinimalPlugins)
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
             .insert_resource(world)
             .insert_resource(task_registry)
-            .add_systems(Startup, move |mut command: Commands| {
+            .add_systems(Startup, |mut command: Commands| {
+                let mut agent = HtnAgent::default();
+                agent
+                    .add_task(Task::Primitive {
+                        precon,
+                        postcon,
+                        name: "test".into(),
+                    })
+                    .add_goal(Goal(vec![("hungry", false.into())].into_iter().into()));
                 command.spawn(agent);
             })
             .add_systems(
                 Update,
-                |agents: Query<&mut HtnAgent>, world: Res<crate::data::World>| {
-                    let agent = agents
-                        .get_single()
+                |mut agents: Query<&mut HtnAgent>, world: Res<crate::data::TruthSet>| {
+                    let mut agent = agents
+                        .get_single_mut()
                         .expect("failed to find agent in bevy ecs world");
-                    agent.rebuild_possibility_space(world);
+                    agent.rebuild_possibility_space(world.clone());
+
+                    let p = &agent.possibilities;
+                    eprintln!("Test Possibility Space ({} plans): {:#?}", p.0.len(), p);
                 },
             );
-        eprintln!("Test Possibility Space: {:#?}", agent.possibilities);
+        app.update();
     }
 
     #[derive(Component, Default, Clone)]
