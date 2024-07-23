@@ -3,7 +3,7 @@ use std::{collections::VecDeque, fmt::Debug};
 use bevy::prelude::*;
 use rand::{seq::IteratorRandom, thread_rng};
 
-use crate::{data::TruthSet, tasks::Task};
+use crate::{data::Context, tasks::Task};
 
 #[derive(Component, Default)]
 pub struct HtnAgent {
@@ -11,7 +11,6 @@ pub struct HtnAgent {
     current_plan: Option<Plan>,
     available_tasks: Vec<Task>,
     evaluator: GoalEvaluation,
-    possibilities: PossibilitySpace,
 }
 
 #[derive(Default)]
@@ -36,17 +35,14 @@ impl GoalEvaluation {
 
 #[derive(Component)]
 pub struct HtnAgentWorld {
-    pub world: TruthSet,
+    pub world: Context,
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct Goal(TruthSet);
+pub struct Goal(Context);
 
 #[derive(Default)]
 pub struct Plan(VecDeque<Task>);
-
-#[derive(Default, Debug)]
-struct PossibilitySpace(Vec<(Plan, Vec<Goal>)>);
 
 impl Debug for Plan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -55,7 +51,12 @@ impl Debug for Plan {
             .finish()
     }
 }
-
+#[derive(Clone, Debug)]
+pub struct PlanningPath {
+    tasks: Vec<Task>,
+    world_stack: Vec<Context>,
+    accomplishes_goal: bool,
+}
 impl HtnAgent {
     pub fn new() -> Self {
         Self::default()
@@ -73,91 +74,74 @@ impl HtnAgent {
         self.current_plan.is_some()
     }
 
-    pub fn rebuild_possibility_space(&mut self, world: crate::data::TruthSet) {
-        // FIXME: method doesn't seem to accomplish expected goal!
-        // TODO: does this method need to be broken up more?
-        self.possibilities.0.clear();
-        let mut plan_indexer: usize = 0;
-        let mut planning = Vec::<(usize, Vec<Task>, Vec<TruthSet>, Option<Goal>)>::new();
-        // load initial available tasks into planning set
-        let initial_tasks = self.possible_tasks(&world);
-        for t in initial_tasks {
-            let new_world = world.concat(&t.postconditions());
-            plan_indexer += 1;
-            planning.push((plan_indexer, vec![t], vec![new_world], None));
-        }
-        // find all valid paths, prune dead ends, extract goal-meeting paths into possibility space
-        while !planning.is_empty() {
-            // iteration caching
-            let mut invalid_paths = Vec::<usize>::new();
-            let mut n_plans = Vec::<(usize, Vec<Task>, Vec<TruthSet>, Option<Goal>)>::new();
-
-            // for each current path, find valid next step and check that the world remains valid
-            for (id, tasks, world_stack, goal_met) in planning.iter() {
-                // get the top of the world stack, prune path if none
-                let Some(world) = world_stack.last() else {
-                    // no world means no tasks
-                    invalid_paths.push(*id);
-                    continue;
-                };
-
-                // if the goal is met, extract into possibility space, along with all goals that are met by this plan.
-                if goal_met.is_some() {
-                    invalid_paths.push(*id); // still purge since we already reached an end
-                    let mut plan_items = VecDeque::<Task>::new();
-                    for t in tasks {
-                        plan_items.append(&mut t.decompose().clone().into())
-                    }
-
-                    let goals = self
-                        .goals
-                        .clone()
-                        .into_iter()
-                        .filter(|p| world.validate(&p.0))
-                        .collect();
-
-                    self.possibilities.0.push((Plan(plan_items), goals))
-                }
-
-                let available_tasks = self.possible_tasks(world);
-                if available_tasks.is_empty() {
-                    // no available tasks means no progress for that plan
-                    invalid_paths.push(*id);
-                    continue;
-                }
-
-                // create a virtual plan for each valid next task. Append new plans to the cache with updated stack values.
-                for t in &available_tasks {
-                    eprintln!("Considering task {:?}, depth={}", t, tasks.len());
-                    // virtual paths for all valid task combinations
-                    let v_world = world.concat(&t.postconditions());
-                    let v_goal = self
-                        .goals
-                        .clone()
-                        .into_iter()
-                        .find(|p| v_world.validate(&p.0));
-                    let mut v_tasks = tasks.clone();
-
-                    plan_indexer += 1;
-                    let mut v_world_stack = world_stack.clone();
-                    v_tasks.push(t.clone());
-                    v_world_stack.push(v_world);
-                    n_plans.push((plan_indexer, v_tasks, v_world_stack, v_goal))
-                }
-            }
-            // add cached new plans to plan set
-            planning.append(&mut n_plans);
-
-            // remove dead plans
-            planning = planning
-                .into_iter()
-                .filter(|(id, _, _, _)| invalid_paths.contains(id))
-                .collect();
-        }
-        println!("Possibility Space: {:#?}", self.possibilities);
+    pub fn get_next_goal(&self) -> Option<Goal> {
+        self.evaluator.next_goal(&self.goals)
     }
 
-    fn possible_tasks(&self, world: &TruthSet) -> Vec<Task> {
+    pub fn create_plan(&mut self, world: Context) -> Result<PlanningPath, ()> {
+        let Some(goal) = self.get_next_goal() else {
+            eprintln!("Failed to create goal");
+            return Err(());
+        };
+        let mut paths = Vec::<PlanningPath>::new();
+        for t in self.possible_tasks(&world) {
+            let virtual_world = world.concat(&t.postconditions());
+            paths.push(PlanningPath {
+                tasks: vec![t],
+                world_stack: vec![virtual_world.clone()],
+                accomplishes_goal: virtual_world.validate(&goal.0),
+            });
+        }
+        let mut valid_paths = Vec::new();
+        while !paths.is_empty() {
+            let mut new_paths = Vec::new();
+            let mut remove_paths = Vec::new();
+            for (index, path) in paths.iter().enumerate() {
+                remove_paths.push(index); // since we are basically decomposing each path into zero or more branches, we can purge each non-leaf path
+
+                if path.accomplishes_goal {
+                    valid_paths.push(path.clone());
+                    eprintln!("Found valid leaf path: {:#?}", path);
+                    continue;
+                }
+
+                let path_world = path.world_stack.last().unwrap();
+                let tasks = self.possible_tasks(&path_world);
+                if tasks.is_empty() {
+                    eprintln!("Found dead end leaf");
+                    continue;
+                }
+
+                for t in tasks {
+                    let mut new_path = path.clone();
+                    let new_world = path_world.clone().concat(&t.postconditions());
+
+                    new_path.accomplishes_goal = new_world.validate(&goal.0);
+                    new_path.tasks.push(t);
+                    new_path.world_stack.push(new_world);
+                    new_paths.push(new_path);
+                }
+            }
+
+            paths = paths
+                .into_iter()
+                .enumerate()
+                .filter(|(index, _)| !remove_paths.contains(index))
+                .map(|v| v.1)
+                .collect();
+            paths.append(&mut new_paths);
+        }
+        if valid_paths.is_empty() {
+            eprintln!("Failed to generate a valid plan");
+            return Err(());
+        }
+        valid_paths.sort_by(|a, b| a.tasks.len().cmp(&b.tasks.len()));
+        eprintln!("Created a valid plan?: {:#?}", valid_paths.first());
+
+        Ok(valid_paths.first().unwrap().clone())
+    }
+
+    fn possible_tasks(&self, world: &Context) -> Vec<Task> {
         self.available_tasks
             .clone()
             .into_iter()
@@ -169,54 +153,96 @@ impl HtnAgent {
 #[cfg(test)]
 mod tests {
 
-    use bevy::prelude::*;
-
-    use crate::tasks::{GlobalHtnTaskRegistry, Postconditions, Preconditions, Task, TaskComponent};
+    use crate::tasks::Task;
 
     use super::*;
 
     #[test]
-    fn possibility_space() {
-        let mut world = crate::data::TruthSet::new();
-        world.insert("hungry", true.into());
+    fn goal_picking_planning() {
+        let mut agent = HtnAgent::default();
+        agent.evaluator = GoalEvaluation::Top;
+        let goal_a = Goal(vec![("A", true.into())].into_iter().into());
+        let goal_b = Goal(vec![("B", true.into())].into_iter().into());
+        let goal_c = Goal(vec![("C", true.into())].into_iter().into());
 
-        let precon: TruthSet = vec![("hungry", true.into())].into_iter().into();
-        let postcon: TruthSet = vec![("hungry", true.into())].into_iter().into();
+        agent.add_goal(goal_a.clone());
+        agent.add_goal(goal_b.clone());
+        agent.add_goal(goal_c.clone());
 
-        let mut task_registry = GlobalHtnTaskRegistry::default();
-
-        task_registry.task::<TestingTask, _>("test", Some(precon), Some(postcon));
-
-        let mut app = App::new();
-        app.add_plugins(MinimalPlugins)
-            .insert_resource(world)
-            .insert_resource(task_registry)
-            .add_systems(Startup, |mut command: Commands| {
-                let mut agent = HtnAgent::default();
-                agent
-                    .add_task(Task::Primitive {
-                        precon,
-                        postcon,
-                        name: "test".into(),
-                    })
-                    .add_goal(Goal(vec![("hungry", false.into())].into_iter().into()));
-                command.spawn(agent);
-            })
-            .add_systems(
-                Update,
-                |mut agents: Query<&mut HtnAgent>, world: Res<crate::data::TruthSet>| {
-                    let mut agent = agents
-                        .get_single_mut()
-                        .expect("failed to find agent in bevy ecs world");
-                    agent.rebuild_possibility_space(world.clone());
-
-                    let p = &agent.possibilities;
-                    eprintln!("Test Possibility Space ({} plans): {:#?}", p.0.len(), p);
-                },
-            );
-        app.update();
+        let next_goal = agent.get_next_goal();
+        assert!(next_goal.is_some());
+        let next_goal = next_goal.unwrap();
+        assert!(goal_a.0.validate(&next_goal.0));
+        assert!(!goal_b.0.validate(&next_goal.0));
+        assert!(!goal_c.0.validate(&next_goal.0));
     }
 
-    #[derive(Component, Default, Clone)]
-    struct TestingTask;
+    #[test]
+    fn single_task_planning() {
+        let precon = Context::new().add("hungry", true).build();
+        let postcon = Context::new().add("hungry", true).build();
+
+        let mut agent = HtnAgent::default();
+        agent.add_task(Task::Primitive {
+            precon: precon.clone(),
+            postcon: postcon.clone(),
+            name: "test".into(),
+        });
+        agent.add_goal(Goal(postcon));
+
+        let result = agent.create_plan(precon);
+
+        eprintln!("{:#?}", result);
+
+        assert!(result.is_ok());
+        let plan = result.unwrap();
+        assert_eq!(plan.tasks.len(), 1);
+        assert!(plan.accomplishes_goal);
+        eprintln!("Test output");
+    }
+
+    #[test]
+    fn multi_task_planning() {
+        let mut agent = HtnAgent::default();
+        agent.add_task(Task::primitive(
+            "goto_door",
+            Context::new()
+                .add("in_room_a", true)
+                .add("near_door", false)
+                .build(),
+            Context::new().add("near_door", true).build(),
+        ));
+        agent.add_task(Task::primitive(
+            "open_door",
+            Context::new()
+                .add("near_door", true)
+                .add("door_open", false)
+                .build(),
+            Context::new().add("door_open", true).build(),
+        ));
+        agent.add_task(Task::primitive(
+            "walk_thru_door",
+            Context::new()
+                .add("in_room_a", true)
+                .add("door_open", true)
+                .add("near_door", true)
+                .build(),
+            Context::new().add("in_room_a", false).build(),
+        ));
+        agent.add_goal(Goal(Context::new().add("in_room_a", false).build()));
+
+        let result = agent.create_plan(
+            Context::new()
+                .add("in_room_a", true)
+                .add("near_door", false)
+                .add("door_open", false)
+                .build(),
+        );
+
+        assert!(result.is_ok());
+        let plan = result.unwrap();
+        assert_eq!(plan.tasks.len(), 3);
+        assert!(plan.accomplishes_goal);
+        eprintln!("Test output");
+    }
 }

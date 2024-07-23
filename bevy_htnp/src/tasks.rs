@@ -1,4 +1,4 @@
-use crate::data::TruthSet;
+use crate::data::Context;
 use bevy::{ecs::system::EntityCommands, prelude::*, utils::HashMap};
 use std::{
     fmt::Debug,
@@ -7,8 +7,8 @@ use std::{
 };
 
 pub trait TaskData: Sync + Send {
-    fn preconditions(&self) -> &TruthSet;
-    fn postconditions(&self) -> &TruthSet;
+    fn preconditions(&self) -> &Context;
+    fn postconditions(&self) -> &Context;
     fn add(&self, entity: &mut EntityCommands);
     fn remove(&self, entity: &mut EntityCommands);
 }
@@ -18,7 +18,7 @@ type TaskStorage = Arc<RwLock<Box<dyn TaskData>>>;
 pub struct GlobalHtnTaskRegistry(pub HashMap<String, TaskStorage>);
 
 impl GlobalHtnTaskRegistry {
-    pub fn task<C, S>(&mut self, name: S, precon: Option<TruthSet>, postcon: Option<TruthSet>)
+    pub fn task<C, S>(&mut self, name: S, precon: Option<Context>, postcon: Option<Context>)
     where
         S: Into<String>,
         C: Component + Default,
@@ -42,8 +42,8 @@ struct SimpleTaskData<C>
 where
     C: Component,
 {
-    precon: TruthSet,
-    postcon: TruthSet,
+    precon: Context,
+    postcon: Context,
     phantom: PhantomData<C>,
 }
 
@@ -51,7 +51,7 @@ impl<C> SimpleTaskData<C>
 where
     C: Component + Default,
 {
-    fn new(precon: TruthSet, postcon: TruthSet) -> Self {
+    fn new(precon: Context, postcon: Context) -> Self {
         Self {
             precon,
             postcon,
@@ -64,11 +64,11 @@ impl<C> TaskData for SimpleTaskData<C>
 where
     C: Component + Default,
 {
-    fn preconditions(&self) -> &TruthSet {
+    fn preconditions(&self) -> &Context {
         &self.precon
     }
 
-    fn postconditions(&self) -> &TruthSet {
+    fn postconditions(&self) -> &Context {
         &self.postcon
     }
 
@@ -84,14 +84,25 @@ where
 #[derive(Debug, Clone)]
 pub enum Task {
     Primitive {
-        precon: TruthSet,
-        postcon: TruthSet,
+        precon: Context,
+        postcon: Context,
         name: String,
     },
     Macro(Vec<Task>),
 }
 
 impl Task {
+    pub fn primitive(name: impl Into<String>, precon: Context, postcon: Context) -> Self {
+        Self::Primitive {
+            precon,
+            postcon,
+            name: name.into(),
+        }
+    }
+
+    pub fn macro_(set: impl Iterator<Item = Task>) -> Self {
+        Task::Macro(set.collect())
+    }
     pub fn decompose(&self) -> Vec<Task> {
         match self {
             Task::Primitive {
@@ -115,7 +126,7 @@ impl Task {
         }
     }
 
-    pub fn postconditions(&self) -> TruthSet {
+    pub fn postconditions(&self) -> Context {
         match self {
             Task::Primitive {
                 precon: _,
@@ -130,7 +141,7 @@ impl Task {
         }
     }
 
-    pub fn preconditions(&self) -> TruthSet {
+    pub fn preconditions(&self) -> Context {
         match self {
             Task::Primitive {
                 precon,

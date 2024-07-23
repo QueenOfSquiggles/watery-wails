@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Default)]
-pub enum Truth {
+pub enum Predicate {
     Bool(bool),
     String(String),
     #[default]
@@ -10,23 +10,32 @@ pub enum Truth {
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Resource)]
-/// For an HTN, a world is simply a collection of known 'truth's.
-pub struct TruthSet {
-    entries: HashMap<String, Truth>,
+/// For an HTN, a context is simply a collection of known 'predicate's.
+pub struct Context {
+    entries: HashMap<String, Predicate>,
 }
 
-impl TruthSet {
+impl Context {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn insert(&mut self, key: impl ToString, value: Truth) -> Option<Truth> {
+    pub fn add(&mut self, key: impl Into<String>, value: impl Into<Predicate>) -> &mut Self {
+        self.insert(Into::<String>::into(key), value.into());
+        self
+    }
+
+    pub fn build(&mut self) -> Self {
+        self.clone()
+    }
+
+    pub fn insert(&mut self, key: impl ToString, value: Predicate) -> Option<Predicate> {
         self.entries.insert(key.to_string(), value)
     }
 
     /// ensure that the other world's set of truths is a subset of this World's truths.
     /// Early exit if a value in other is not present in this world or if the values between worlds do not match
-    pub fn validate(&self, other: &TruthSet) -> bool {
+    pub fn validate(&self, other: &Context) -> bool {
         for (name, truth) in &other.entries {
             let Some(val) = self.entries.get(name) else {
                 return false;
@@ -38,29 +47,29 @@ impl TruthSet {
         return true;
     }
 
-    pub fn get(&self, s: impl ToString) -> Truth {
+    pub fn get(&self, s: impl ToString) -> Predicate {
         let Some(value) = self.entries.get(&s.to_string()) else {
-            return Truth::None;
+            return Predicate::None;
         };
         return value.clone();
     }
 
-    pub fn append(&mut self, other: &TruthSet) {
+    pub fn append(&mut self, other: &Context) {
         for (name, truth) in &other.entries {
             self.entries.insert(name.clone(), truth.clone());
         }
     }
 
-    pub fn concat(&self, other: &TruthSet) -> Self {
+    pub fn concat(&self, other: &Context) -> Self {
         let mut n_world = self.clone();
         n_world.append(other);
         n_world
     }
 }
 
-impl<I, S> From<I> for TruthSet
+impl<I, S> From<I> for Context
 where
-    I: Iterator<Item = (S, Truth)>,
+    I: Iterator<Item = (S, Predicate)>,
     S: ToString,
 {
     fn from(value: I) -> Self {
@@ -75,26 +84,26 @@ where
     }
 }
 
-impl From<Truth> for TruthSet {
-    fn from(value: Truth) -> Self {
+impl From<Predicate> for Context {
+    fn from(value: Predicate) -> Self {
         let mut map = HashMap::new();
         map.insert("value".into(), value);
         Self { entries: map }
     }
 }
 
-impl From<bool> for Truth {
+impl From<bool> for Predicate {
     fn from(value: bool) -> Self {
         Self::Bool(value)
     }
 }
 
-impl From<String> for Truth {
+impl From<String> for Predicate {
     fn from(value: String) -> Self {
         Self::String(value)
     }
 }
-impl From<&str> for Truth {
+impl From<&str> for Predicate {
     fn from(value: &str) -> Self {
         Self::String(value.to_string())
     }
@@ -106,28 +115,28 @@ mod tests {
 
     #[test]
     fn test_truth_equality() {
-        let bool_true = Truth::Bool(true);
-        let bool_false = Truth::Bool(false);
-        let string_empty = Truth::String("".into());
-        let string_test = Truth::String("test".into());
-        let none = Truth::None;
+        let bool_true = Predicate::Bool(true);
+        let bool_false = Predicate::Bool(false);
+        let string_empty = Predicate::String("".into());
+        let string_test = Predicate::String("test".into());
+        let none = Predicate::None;
 
         // bools matrix
-        assert_eq!(bool_true, Truth::Bool(true));
-        assert_eq!(bool_false, Truth::Bool(false));
+        assert_eq!(bool_true, Predicate::Bool(true));
+        assert_eq!(bool_false, Predicate::Bool(false));
 
         assert_ne!(bool_true, bool_false);
-        assert_ne!(bool_true, Truth::Bool(false));
-        assert_ne!(bool_false, Truth::Bool(true));
+        assert_ne!(bool_true, Predicate::Bool(false));
+        assert_ne!(bool_false, Predicate::Bool(true));
 
         // strings matrix
-        assert_eq!(string_empty, Truth::String("".into()));
-        assert_eq!(string_test, Truth::String("test".into()));
+        assert_eq!(string_empty, Predicate::String("".into()));
+        assert_eq!(string_test, Predicate::String("test".into()));
 
         assert_ne!(string_empty, string_test);
 
         // nones
-        assert_eq!(none, Truth::None);
+        assert_eq!(none, Predicate::None);
 
         // cross comparisons
         assert_ne!(bool_true, string_empty);
@@ -149,17 +158,17 @@ mod tests {
 
     #[test]
     fn test_world_validation() {
-        let truths_base: TruthSet = vec![
+        let truths_base: Context = vec![
             ("safe", true.into()),
             ("running", false.into()),
             ("happy", true.into()),
         ]
         .into_iter()
         .into();
-        let truths_valid: TruthSet = vec![("safe", true.into()), ("happy", true.into())]
+        let truths_valid: Context = vec![("safe", true.into()), ("happy", true.into())]
             .into_iter()
             .into();
-        let truths_invalid: TruthSet = vec![("running", true.into())].into_iter().into();
+        let truths_invalid: Context = vec![("running", true.into())].into_iter().into();
 
         assert!(truths_base.validate(&truths_valid));
         assert!(!truths_base.validate(&truths_invalid));
@@ -170,7 +179,7 @@ mod tests {
         assert!(!truths_invalid.validate(&truths_base));
         assert!(!truths_invalid.validate(&truths_valid));
 
-        let concatenated_set: TruthSet = vec![("running", true.into())].into_iter().into();
+        let concatenated_set: Context = vec![("running", true.into())].into_iter().into();
         let super_set = truths_base.concat(&concatenated_set);
         assert!(!truths_base.validate(&truths_invalid)); // ensure that concating doesn't change base value
         assert!(super_set.validate(&truths_invalid)); // ensure new concatenation is valid for both

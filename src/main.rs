@@ -20,6 +20,7 @@ fn main() {
         use bevy::asset::AssetMetaCheck;
         app = app.insert_resource(AssetMetaCheck::Never);
     }
+    // this is a new line insert to test dependency eval
     #[cfg(not(target_family = "wasm"))]
     {
         // include for all desktop builds

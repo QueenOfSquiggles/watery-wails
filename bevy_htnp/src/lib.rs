@@ -13,7 +13,7 @@ pub mod prelude {
     pub use crate::tasks::*;
 
     pub struct HtnPlanningPlugin {
-        initial_world: Option<TruthSet>,
+        initial_world: Option<Context>,
     }
 
     impl Plugin for HtnPlanningPlugin {
@@ -33,7 +33,7 @@ pub mod prelude {
             }
         }
 
-        pub fn with(world: impl Into<TruthSet>) -> Self {
+        pub fn with(world: impl Into<Context>) -> Self {
             Self {
                 initial_world: Some(world.into()),
             }
