@@ -6,6 +6,10 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+pub(crate) fn plugin(app: &mut App) {
+    app.insert_resource(GlobalHtnTaskRegistry::default());
+}
+
 pub trait TaskData: Sync + Send {
     fn preconditions(&self) -> &Context;
     fn postconditions(&self) -> &Context;
@@ -13,11 +17,25 @@ pub trait TaskData: Sync + Send {
     fn remove(&self, entity: &mut EntityCommands);
 }
 
-type TaskStorage = Arc<RwLock<Box<dyn TaskData>>>;
+pub type TaskStorage = Arc<RwLock<Box<dyn TaskData>>>;
 #[derive(Resource, Default)]
 pub struct GlobalHtnTaskRegistry(pub HashMap<String, TaskStorage>);
 
 impl GlobalHtnTaskRegistry {
+    pub fn get_from(&self, task: Task) -> Option<(String, &TaskStorage)> {
+        let Task::Primitive {
+            precon: _,
+            postcon: _,
+            name,
+        } = task
+        else {
+            return None;
+        };
+        if let Some(task) = self.0.get(&name) {
+            return Some((name, task));
+        }
+        None
+    }
     pub fn task<C, S>(&mut self, name: S, precon: Option<Context>, postcon: Option<Context>)
     where
         S: Into<String>,

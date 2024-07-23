@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
 
+pub(crate) fn plugin(_app: &mut App) {}
+
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Predicate {
     Bool(bool),

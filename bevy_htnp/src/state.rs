@@ -5,6 +5,8 @@ use rand::{seq::IteratorRandom, thread_rng};
 
 use crate::{data::Context, tasks::Task};
 
+pub(crate) fn plugin(_app: &mut App) {}
+
 #[derive(Component, Default)]
 pub struct HtnAgent {
     goals: Vec<Goal>,
@@ -15,6 +17,7 @@ pub struct HtnAgent {
 
 #[derive(Default)]
 pub enum GoalEvaluation {
+    // TODO: what kinds of context may be needed and/or interesting for agents to determine top goal?
     Random,
     // TODO: how to handle weighted random? Or just rely on custom function?
     // RandomWeighted,
@@ -53,10 +56,11 @@ impl Debug for Plan {
 }
 #[derive(Clone, Debug)]
 pub struct PlanningPath {
-    tasks: Vec<Task>,
+    pub tasks: Vec<Task>,
     world_stack: Vec<Context>,
     accomplishes_goal: bool,
 }
+
 impl HtnAgent {
     pub fn new() -> Self {
         Self::default()
@@ -78,7 +82,7 @@ impl HtnAgent {
         self.evaluator.next_goal(&self.goals)
     }
 
-    pub fn create_plan(&mut self, world: Context) -> Result<PlanningPath, ()> {
+    pub fn create_plan(&self, world: Context) -> Result<PlanningPath, ()> {
         let Some(goal) = self.get_next_goal() else {
             eprintln!("Failed to create goal");
             return Err(());
@@ -198,7 +202,6 @@ mod tests {
         let plan = result.unwrap();
         assert_eq!(plan.tasks.len(), 1);
         assert!(plan.accomplishes_goal);
-        eprintln!("Test output");
     }
 
     #[test]
@@ -243,6 +246,5 @@ mod tests {
         let plan = result.unwrap();
         assert_eq!(plan.tasks.len(), 3);
         assert!(plan.accomplishes_goal);
-        eprintln!("Test output");
     }
 }
