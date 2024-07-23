@@ -109,6 +109,35 @@ pub enum Task {
     Macro(Vec<Task>),
 }
 
+pub struct TaskSequence(pub Vec<String>);
+impl TaskSequence {
+    pub fn from(value: Vec<Task>) -> Self {
+        Self(
+            value
+                .iter()
+                .map(|p| p.decompose())
+                .reduce(|mut agg, mut item| {
+                    agg.append(&mut item);
+                    agg
+                })
+                .unwrap_or_default()
+                .iter()
+                .map(|p| {
+                    let Task::Primitive {
+                        precon: _,
+                        postcon: _,
+                        name,
+                    } = p
+                    else {
+                        return "".into();
+                    };
+                    name.clone()
+                })
+                .collect(),
+        )
+    }
+}
+
 impl Task {
     pub fn primitive(name: impl Into<String>, precon: Context, postcon: Context) -> Self {
         Self::Primitive {

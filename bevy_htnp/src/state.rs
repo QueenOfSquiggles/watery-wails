@@ -36,11 +36,6 @@ impl GoalEvaluation {
     }
 }
 
-#[derive(Component)]
-pub struct HtnAgentWorld {
-    pub world: Context,
-}
-
 #[derive(Default, Clone, Debug)]
 pub struct Goal(Context);
 

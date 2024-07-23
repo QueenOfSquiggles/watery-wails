@@ -3,7 +3,7 @@ use bevy::{ecs::system::EntityCommands, prelude::*};
 use crate::{
     data::Context,
     state::HtnAgent,
-    tasks::{GlobalHtnTaskRegistry, Task},
+    tasks::{GlobalHtnTaskRegistry, TaskSequence},
 };
 
 pub(crate) fn plugin(app: &mut App) {
@@ -21,7 +21,7 @@ pub struct HtnAgentWorld(Context);
 
 #[derive(Component)]
 pub struct HtnAgentPlan {
-    pub plan_stack: Vec<Task>,
+    pub plan_stack: TaskSequence,
 }
 
 #[derive(Component)]
@@ -50,7 +50,7 @@ fn create_plans_for_unplanned_agents(
             continue;
         };
         command.entity(entity).insert(HtnAgentPlan {
-            plan_stack: plan_data.tasks,
+            plan_stack: TaskSequence::from(plan_data.tasks),
         });
     }
 }
@@ -72,7 +72,7 @@ fn handle_agent_state_changes(
                 HtnAgentState::Running => continue,
                 // when a task succeeds, push this state. Old task removed and next task injected
                 HtnAgentState::Success => {
-                    if let Some(next_task) = plan.plan_stack.pop() {
+                    if let Some(next_task) = plan.plan_stack.0.pop() {
                         if let Some(prev_task) = task {
                             try_remove_previous_task(
                                 &mut command.entity(entity),
@@ -99,7 +99,7 @@ fn handle_agent_state_changes(
                 }
             }
         } else {
-            if let Some(next_task) = plan.plan_stack.pop() {
+            if let Some(next_task) = plan.plan_stack.0.pop() {
                 push_task_to_agent(next_task, &mut command.entity(entity), &task_registry);
             } else {
                 command
@@ -114,18 +114,18 @@ fn handle_agent_state_changes(
 }
 
 fn push_task_to_agent(
-    task: Task,
+    task: String,
     mut entity: &mut EntityCommands,
     task_registry: &Res<GlobalHtnTaskRegistry>,
 ) {
-    let Some((task_name, next_task)) = task_registry.get_from(task) else {
+    let Some(next_task) = task_registry.0.get(&task) else {
         return;
     };
     let Ok(task_data) = next_task.read() else {
         return;
     };
     task_data.add(&mut entity);
-    entity.insert((HtnAgentCurrentTask(task_name), HtnAgentState::Running));
+    entity.insert((HtnAgentCurrentTask(task), HtnAgentState::Running));
 }
 
 fn try_remove_previous_task(
