@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use bevy::prelude::*;
+use bevy_htnp::prelude::HtnPlanningPlugin;
 use game::GamePlugin;
 use gen::GAME_VERSION;
 
@@ -10,6 +11,7 @@ mod gen;
 fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins)
+        .add_plugins(HtnPlanningPlugin::new())
         .add_plugins(GamePlugin) // game systems & data
         .add_systems(Startup, || {
             info!("Watery Wails '{}' starting", GAME_VERSION)

@@ -1,13 +1,9 @@
 use crate::data::Context;
 use bevy::{ecs::system::EntityCommands, prelude::*, utils::HashMap};
-use std::{
-    fmt::Debug,
-    marker::PhantomData,
-    sync::{Arc, RwLock},
-};
+use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
 pub(crate) fn plugin(app: &mut App) {
-    app.insert_resource(GlobalHtnTaskRegistry::default());
+    app.insert_resource(TaskRegistry::default());
 }
 
 pub trait TaskData: Sync + Send {
@@ -15,43 +11,120 @@ pub trait TaskData: Sync + Send {
     fn postconditions(&self) -> &Context;
     fn add(&self, entity: &mut EntityCommands);
     fn remove(&self, entity: &mut EntityCommands);
+    fn cost(&self, world: &Context) -> f32;
 }
 
-pub type TaskStorage = Arc<RwLock<Box<dyn TaskData>>>;
-#[derive(Resource, Default)]
-pub struct GlobalHtnTaskRegistry(pub HashMap<String, TaskStorage>);
+/// We store tasks in an atomic ref-counted box. This means they are thread-safe dynamic allocations that are explicitly read-only.
+pub type TaskStorage = Arc<Box<dyn TaskData>>;
 
-impl GlobalHtnTaskRegistry {
-    pub fn get_from(&self, task: Task) -> Option<(String, &TaskStorage)> {
-        let Task::Primitive {
-            precon: _,
-            postcon: _,
-            name,
-        } = task
-        else {
+#[derive(Resource, Default)]
+pub struct TaskRegistry(pub HashMap<String, TaskStorage>);
+
+impl TaskRegistry {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn get_task(&self, task: &Task) -> Option<&TaskStorage> {
+        let Task::Primitive(name) = task else {
             return None;
         };
-        if let Some(task) = self.0.get(&name) {
-            return Some((name, task));
+        if let Some(task) = self.0.get(name) {
+            return Some(task);
         }
         None
     }
-    pub fn task<C, S>(&mut self, name: S, precon: Option<Context>, postcon: Option<Context>)
+    pub fn get_named(&self, task: &String) -> Option<&TaskStorage> {
+        self.0.get(task)
+    }
+
+    pub fn task<C, S>(&mut self, name: S, precon: Context, postcon: Context, cost: f32)
     where
         S: Into<String>,
         C: Component + Default,
     {
-        let comp =
-            SimpleTaskData::<C>::new(precon.unwrap_or_default(), postcon.unwrap_or_default());
-        self.0
-            .insert(name.into(), Arc::new(RwLock::new(Box::new(comp))));
+        let comp = SimpleTaskData::<C>::new(precon, postcon, cost);
+        self.0.insert(name.into(), Arc::new(Box::new(comp)));
+    }
+
+    /// utility to more easily get both pre and post conditions for situations where both are needed
+    pub fn pre_and_postcon(&self, task: &Task) -> Option<(Context, Context)> {
+        let pre = self.precon(task);
+        let post = self.postcon(task);
+        if pre.is_none() || post.is_none() {
+            return None;
+        }
+        Some((pre.unwrap(), post.unwrap()))
+    }
+
+    pub fn precon(&self, task: &Task) -> Option<Context> {
+        match task {
+            Task::Primitive(name) => {
+                if let Some(data) = self.get_named(name) {
+                    return Some(data.preconditions().clone());
+                }
+                None
+            }
+            Task::Macro(tasks, _) => {
+                let mut context = Context::new();
+                for t in tasks
+                    .iter()
+                    .map(|t| t.decompose())
+                    .rev()
+                    .reduce(|agg, item| {
+                        agg.into_iter()
+                            .chain(item.into_iter())
+                            .collect::<Vec<String>>()
+                    })
+                    .unwrap_or_default()
+                {
+                    let Some(data) = self.get_named(&t) else {
+                        return None;
+                    };
+                    context.append(data.postconditions());
+                    context.append(data.preconditions());
+                }
+                Some(context)
+            }
+        }
+    }
+
+    pub fn postcon(&self, task: &Task) -> Option<Context> {
+        match task {
+            Task::Primitive(name) => {
+                if let Some(data) = self.get_named(name) {
+                    return Some(data.preconditions().clone());
+                }
+                None
+            }
+            Task::Macro(tasks, _) => {
+                let mut context = Context::new();
+                for t in tasks
+                    .iter()
+                    .map(|t| t.decompose())
+                    .rev()
+                    .reduce(|agg, item| {
+                        agg.into_iter()
+                            .chain(item.into_iter())
+                            .collect::<Vec<String>>()
+                    })
+                    .unwrap_or_default()
+                {
+                    let Some(data) = self.get_named(&t) else {
+                        return None;
+                    };
+                    context.append(data.preconditions());
+                    context.append(data.postconditions());
+                }
+                Some(context)
+            }
+        }
     }
 
     pub fn custom_task<S>(&mut self, name: S, data: Box<dyn TaskData>)
     where
         S: Into<String>,
     {
-        self.0.insert(name.into(), Arc::new(RwLock::new(data)));
+        self.0.insert(name.into(), Arc::new(data));
     }
 }
 
@@ -62,6 +135,7 @@ where
 {
     precon: Context,
     postcon: Context,
+    cost: f32,
     phantom: PhantomData<C>,
 }
 
@@ -69,11 +143,12 @@ impl<C> SimpleTaskData<C>
 where
     C: Component + Default,
 {
-    fn new(precon: Context, postcon: Context) -> Self {
+    fn new(precon: Context, postcon: Context, cost: f32) -> Self {
         Self {
             precon,
             postcon,
             phantom: PhantomData,
+            cost,
         }
     }
 }
@@ -97,69 +172,39 @@ where
     fn remove(&self, entity: &mut EntityCommands) {
         entity.remove::<C>();
     }
+
+    fn cost(&self, _: &Context) -> f32 {
+        self.cost
+    }
 }
 
 #[derive(Debug, Clone)]
 pub enum Task {
-    Primitive {
-        precon: Context,
-        postcon: Context,
-        name: String,
-    },
-    Macro(Vec<Task>),
-}
-
-pub struct TaskSequence(pub Vec<String>);
-impl TaskSequence {
-    pub fn from(value: Vec<Task>) -> Self {
-        Self(
-            value
-                .iter()
-                .map(|p| p.decompose())
-                .reduce(|mut agg, mut item| {
-                    agg.append(&mut item);
-                    agg
-                })
-                .unwrap_or_default()
-                .iter()
-                .map(|p| {
-                    let Task::Primitive {
-                        precon: _,
-                        postcon: _,
-                        name,
-                    } = p
-                    else {
-                        return "".into();
-                    };
-                    name.clone()
-                })
-                .collect(),
-        )
-    }
+    Primitive(String),
+    Macro(Vec<Task>, String),
 }
 
 impl Task {
-    pub fn primitive(name: impl Into<String>, precon: Context, postcon: Context) -> Self {
-        Self::Primitive {
-            precon,
-            postcon,
-            name: name.into(),
+    pub fn name(&self) -> String {
+        match self {
+            Task::Primitive(name) => name,
+            Task::Macro(_, name) => name,
         }
+        .clone()
+    }
+    pub fn primitive(name: impl Into<String>) -> Self {
+        Self::Primitive(name.into())
     }
 
-    pub fn macro_(set: impl Iterator<Item = Task>) -> Self {
-        Task::Macro(set.collect())
+    pub fn macro_(set: impl Iterator<Item = Task>, name: String) -> Self {
+        Task::Macro(set.collect(), name)
     }
-    pub fn decompose(&self) -> Vec<Task> {
+    pub fn decompose(&self) -> Vec<String> {
         match self {
-            Task::Primitive {
-                precon: _,
-                postcon: _,
-                name: _,
-            } => {
-                vec![self.clone()]
+            Task::Primitive(name) => {
+                vec![name.clone()]
             }
-            Task::Macro(m) => m
+            Task::Macro(m, _) => m
                 .iter()
                 .map(|p| p.decompose())
                 .reduce(|agg, item| {
@@ -169,37 +214,6 @@ impl Task {
                     }
                     n_agg
                 })
-                .unwrap_or_default(),
-        }
-    }
-
-    pub fn postconditions(&self) -> Context {
-        match self {
-            Task::Primitive {
-                precon: _,
-                postcon,
-                name: _,
-            } => postcon.clone(),
-            Task::Macro(steps) => steps
-                .into_iter()
-                .map(|t| t.postconditions())
-                .reduce(|agg, item| agg.concat(&item))
-                .unwrap_or_default(),
-        }
-    }
-
-    pub fn preconditions(&self) -> Context {
-        match self {
-            Task::Primitive {
-                precon,
-                postcon: _,
-                name: _,
-            } => precon.clone().into(),
-            Task::Macro(steps) => steps
-                .into_iter()
-                .rev()
-                .map(|t| t.preconditions())
-                .reduce(|agg, item| agg.concat(&item))
                 .unwrap_or_default(),
         }
     }

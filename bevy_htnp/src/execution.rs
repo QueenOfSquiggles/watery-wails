@@ -1,10 +1,6 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
 
-use crate::{
-    data::Context,
-    state::HtnAgent,
-    tasks::{GlobalHtnTaskRegistry, TaskSequence},
-};
+use crate::{data::Context, planning::HtnAgent, tasks::TaskRegistry};
 
 pub(crate) fn plugin(app: &mut App) {
     app.add_systems(
@@ -17,15 +13,15 @@ pub(crate) fn plugin(app: &mut App) {
 }
 
 #[derive(Component)]
-pub struct HtnAgentWorld(Context);
+pub struct HtnAgentWorld(pub Context);
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct HtnAgentPlan {
-    pub plan_stack: TaskSequence,
+    pub plan_stack: Vec<String>,
 }
 
 #[derive(Component)]
-pub struct HtnAgentCurrentTask(String);
+pub struct HtnAgentCurrentTask(pub String);
 
 #[derive(Component, PartialEq)]
 pub enum HtnAgentState {
@@ -38,6 +34,7 @@ pub enum HtnAgentState {
 fn create_plans_for_unplanned_agents(
     query: Query<(Entity, &HtnAgent, Option<&HtnAgentWorld>), Without<HtnAgentPlan>>,
     world: Res<Context>,
+    registry: Res<TaskRegistry>,
     mut command: Commands,
 ) {
     for (entity, agent, ctx) in query.iter() {
@@ -45,12 +42,12 @@ fn create_plans_for_unplanned_agents(
         if let Some(w) = ctx {
             agent_context.append(&w.0);
         }
-        let plan = agent.create_plan(agent_context);
+        let plan = agent.create_plan(agent_context, &registry);
         let Ok(plan_data) = plan else {
             continue;
         };
         command.entity(entity).insert(HtnAgentPlan {
-            plan_stack: TaskSequence::from(plan_data.tasks),
+            plan_stack: plan_data.decompose_tasks(),
         });
     }
 }
@@ -62,7 +59,7 @@ fn handle_agent_state_changes(
         Option<&HtnAgentState>,
         Option<&HtnAgentCurrentTask>,
     )>,
-    task_registry: Res<GlobalHtnTaskRegistry>,
+    task_registry: Res<TaskRegistry>,
     mut command: Commands,
 ) {
     for (entity, mut plan, state, task) in query.iter_mut() {
@@ -72,7 +69,7 @@ fn handle_agent_state_changes(
                 HtnAgentState::Running => continue,
                 // when a task succeeds, push this state. Old task removed and next task injected
                 HtnAgentState::Success => {
-                    if let Some(next_task) = plan.plan_stack.0.pop() {
+                    if let Some(next_task) = plan.plan_stack.pop() {
                         if let Some(prev_task) = task {
                             try_remove_previous_task(
                                 &mut command.entity(entity),
@@ -84,29 +81,23 @@ fn handle_agent_state_changes(
                     } else {
                         command
                             .entity(entity)
-                            .remove::<HtnAgentCurrentTask>()
-                            .remove::<HtnAgentState>()
-                            .remove::<HtnAgentPlan>();
+                            .remove::<(HtnAgentCurrentTask, HtnAgentState, HtnAgentPlan)>();
                     }
                 }
                 // When a task fails for some reason we push this state, which purges existing execution data
                 HtnAgentState::Failure => {
                     command
                         .entity(entity)
-                        .remove::<HtnAgentCurrentTask>()
-                        .remove::<HtnAgentState>()
-                        .remove::<HtnAgentPlan>();
+                        .remove::<(HtnAgentCurrentTask, HtnAgentState, HtnAgentPlan)>();
                 }
             }
         } else {
-            if let Some(next_task) = plan.plan_stack.0.pop() {
+            if let Some(next_task) = plan.plan_stack.pop() {
                 push_task_to_agent(next_task, &mut command.entity(entity), &task_registry);
             } else {
                 command
                     .entity(entity)
-                    .remove::<HtnAgentCurrentTask>()
-                    .remove::<HtnAgentState>()
-                    .remove::<HtnAgentPlan>();
+                    .remove::<(HtnAgentCurrentTask, HtnAgentState, HtnAgentPlan)>();
                 warn!("Failed to initialize a plan for entity {}", entity);
             }
         }
@@ -116,12 +107,9 @@ fn handle_agent_state_changes(
 fn push_task_to_agent(
     task: String,
     mut entity: &mut EntityCommands,
-    task_registry: &Res<GlobalHtnTaskRegistry>,
+    task_registry: &Res<TaskRegistry>,
 ) {
-    let Some(next_task) = task_registry.0.get(&task) else {
-        return;
-    };
-    let Ok(task_data) = next_task.read() else {
+    let Some(task_data) = task_registry.get_named(&task) else {
         return;
     };
     task_data.add(&mut entity);
@@ -130,13 +118,10 @@ fn push_task_to_agent(
 
 fn try_remove_previous_task(
     mut entity: &mut EntityCommands,
-    task_registry: &Res<GlobalHtnTaskRegistry>,
+    task_registry: &Res<TaskRegistry>,
     previous: &HtnAgentCurrentTask,
 ) {
-    let Some(task_data) = task_registry.0.get(&previous.0) else {
-        return;
-    };
-    let Ok(task) = task_data.read() else {
+    let Some(task) = task_registry.get_named(&previous.0) else {
         return;
     };
     task.remove(&mut entity);

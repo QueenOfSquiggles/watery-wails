@@ -1,8 +1,10 @@
 #![feature(trivial_bounds)]
 
 pub mod data;
+#[cfg(feature = "default_tasks")]
+pub mod default_tasks;
 pub mod execution;
-pub mod state;
+pub mod planning;
 pub mod tasks;
 
 pub mod prelude {
@@ -10,8 +12,10 @@ pub mod prelude {
     use bevy::app::Plugin;
 
     pub use crate::data::*;
+    #[cfg(feature = "default_tasks")]
+    pub use crate::default_tasks::*;
     pub use crate::execution::*;
-    pub use crate::state::*;
+    pub use crate::planning::*;
     pub use crate::tasks::*;
 
     pub struct HtnPlanningPlugin {
@@ -20,13 +24,13 @@ pub mod prelude {
 
     impl Plugin for HtnPlanningPlugin {
         fn build(&self, app: &mut App) {
-            if let Some(world) = &self.initial_world {
-                app.insert_resource(world.clone());
-            }
+            app.insert_resource(self.initial_world.as_ref().cloned().unwrap_or_default());
             crate::data::plugin(app);
-            crate::state::plugin(app);
+            crate::planning::plugin(app);
             crate::tasks::plugin(app);
             crate::execution::plugin(app);
+            #[cfg(feature = "default_tasks")]
+            crate::default_tasks::plugin(app);
         }
     }
 
@@ -44,3 +48,6 @@ pub mod prelude {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {}
