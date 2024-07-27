@@ -1,15 +1,8 @@
-use crate::{
-    data::Context,
-    tasks::{TaskRegistry, TaskStorage},
-};
-
 use std::fmt::Debug;
 
 use crate::tasks::Task;
 
 use std::collections::VecDeque;
-
-use super::goals::Goal;
 
 #[derive(Default)]
 pub struct Plan(VecDeque<Task>);

@@ -1,4 +1,4 @@
-use crate::data::Context;
+use crate::data::{Requirements, WorldState};
 use bevy::{ecs::system::EntityCommands, prelude::*, utils::HashMap};
 use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
@@ -7,11 +7,11 @@ pub(crate) fn plugin(app: &mut App) {
 }
 
 pub trait TaskData: Sync + Send {
-    fn preconditions(&self) -> &Context;
-    fn postconditions(&self) -> &Context;
+    fn preconditions(&self) -> &Requirements;
+    fn postconditions(&self) -> &WorldState;
     fn add(&self, entity: &mut EntityCommands);
     fn remove(&self, entity: &mut EntityCommands);
-    fn cost(&self, world: &Context) -> f32;
+    fn cost(&self, world: &WorldState) -> f32;
 }
 
 /// We store tasks in an atomic ref-counted box. This means they are thread-safe dynamic allocations that are explicitly read-only.
@@ -37,7 +37,7 @@ impl TaskRegistry {
         self.0.get(task)
     }
 
-    pub fn task<C, S>(&mut self, name: S, precon: Context, postcon: Context, cost: f32)
+    pub fn task<C, S>(&mut self, name: S, precon: Requirements, postcon: WorldState, cost: f32)
     where
         S: Into<String>,
         C: Component + Default,
@@ -47,7 +47,7 @@ impl TaskRegistry {
     }
 
     /// utility to more easily get both pre and post conditions for situations where both are needed
-    pub fn pre_and_postcon(&self, task: &Task) -> Option<(Context, Context)> {
+    pub fn pre_and_postcon(&self, task: &Task) -> Option<(Requirements, WorldState)> {
         let pre = self.precon(task);
         let post = self.postcon(task);
         if pre.is_none() || post.is_none() {
@@ -56,7 +56,7 @@ impl TaskRegistry {
         Some((pre.unwrap(), post.unwrap()))
     }
 
-    pub fn precon(&self, task: &Task) -> Option<Context> {
+    pub fn precon(&self, task: &Task) -> Option<Requirements> {
         match task {
             Task::Primitive(name) => {
                 if let Some(data) = self.get_named(name) {
@@ -65,7 +65,7 @@ impl TaskRegistry {
                 None
             }
             Task::Macro(tasks, _) => {
-                let mut context = Context::new();
+                let mut req = Requirements::new();
                 for t in tasks
                     .iter()
                     .map(|t| t.decompose())
@@ -80,24 +80,24 @@ impl TaskRegistry {
                     let Some(data) = self.get_named(&t) else {
                         return None;
                     };
-                    context.append(data.postconditions());
-                    context.append(data.preconditions());
+                    req = req.unmet_requirements(data.postconditions());
+                    req.append(data.preconditions());
                 }
-                Some(context)
+                Some(req)
             }
         }
     }
 
-    pub fn postcon(&self, task: &Task) -> Option<Context> {
+    pub fn postcon(&self, task: &Task) -> Option<WorldState> {
         match task {
             Task::Primitive(name) => {
                 if let Some(data) = self.get_named(name) {
-                    return Some(data.preconditions().clone());
+                    return Some(data.postconditions().clone());
                 }
                 None
             }
             Task::Macro(tasks, _) => {
-                let mut context = Context::new();
+                let mut context = WorldState::new();
                 for t in tasks
                     .iter()
                     .map(|t| t.decompose())
@@ -112,7 +112,7 @@ impl TaskRegistry {
                     let Some(data) = self.get_named(&t) else {
                         return None;
                     };
-                    context.append(data.preconditions());
+                    context = data.preconditions().consume(&context);
                     context.append(data.postconditions());
                 }
                 Some(context)
@@ -133,8 +133,8 @@ struct SimpleTaskData<C>
 where
     C: Component,
 {
-    precon: Context,
-    postcon: Context,
+    precon: Requirements,
+    postcon: WorldState,
     cost: f32,
     phantom: PhantomData<C>,
 }
@@ -143,7 +143,7 @@ impl<C> SimpleTaskData<C>
 where
     C: Component + Default,
 {
-    fn new(precon: Context, postcon: Context, cost: f32) -> Self {
+    fn new(precon: Requirements, postcon: WorldState, cost: f32) -> Self {
         Self {
             precon,
             postcon,
@@ -157,11 +157,11 @@ impl<C> TaskData for SimpleTaskData<C>
 where
     C: Component + Default,
 {
-    fn preconditions(&self) -> &Context {
+    fn preconditions(&self) -> &Requirements {
         &self.precon
     }
 
-    fn postconditions(&self) -> &Context {
+    fn postconditions(&self) -> &WorldState {
         &self.postcon
     }
 
@@ -173,7 +173,7 @@ where
         entity.remove::<C>();
     }
 
-    fn cost(&self, _: &Context) -> f32 {
+    fn cost(&self, _: &WorldState) -> f32 {
         self.cost
     }
 }

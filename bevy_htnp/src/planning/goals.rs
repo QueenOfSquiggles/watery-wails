@@ -1,6 +1,6 @@
 use rand::{seq::IteratorRandom, thread_rng};
 
-use crate::data::Context;
+use crate::data::{Requirements, WorldState};
 
 #[derive(Default)]
 pub enum GoalEvaluation {
@@ -10,11 +10,11 @@ pub enum GoalEvaluation {
     // RandomWeighted,
     #[default]
     Top,
-    Custom(fn(&Vec<Goal>, &Context) -> Option<Goal>),
+    Custom(fn(&Vec<Goal>, &WorldState) -> Option<Goal>),
 }
 
 impl GoalEvaluation {
-    pub fn next_goal(&self, goals: &Vec<Goal>, world: &Context) -> Option<Goal> {
+    pub fn next_goal(&self, goals: &Vec<Goal>, world: &WorldState) -> Option<Goal> {
         match *self {
             GoalEvaluation::Top => goals.first().cloned(),
             GoalEvaluation::Custom(f) => f(goals, world),
@@ -24,4 +24,4 @@ impl GoalEvaluation {
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct Goal(pub Context);
+pub struct Goal(pub Requirements);

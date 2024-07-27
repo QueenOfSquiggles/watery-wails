@@ -1,29 +1,42 @@
 use bevy::prelude::*;
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 pub(crate) fn plugin(_app: &mut App) {}
 
-#[derive(Clone, Debug, PartialEq, Default)]
-pub enum Predicate {
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+pub enum Variant {
     Bool(bool),
     String(String),
-    #[default]
-    None,
+    Number(f32),
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Resource)]
 /// For an HTN, a context is simply a collection of known 'predicate's.
-pub struct Context {
+pub struct WorldState {
+    entries: HashMap<String, Variant>,
+}
+
+#[derive(Default, Clone, Debug, PartialEq)]
+pub enum Predicate {
+    #[default]
+    HasEntry,
+    Equals(Variant),
+    /// uses partialeq (or totaleq for Number) to compare. Returns true if the comparison Ordering matches the stored Ordering
+    Order(Ordering, Variant),
+}
+
+#[derive(Default, Clone, Debug, PartialEq)]
+pub struct Requirements {
     entries: HashMap<String, Predicate>,
 }
 
-impl Context {
+impl WorldState {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn add(&mut self, key: impl Into<String>, value: impl Into<Predicate>) -> &mut Self {
-        self.insert(Into::<String>::into(key), value.into());
+    pub fn add(&mut self, key: impl Into<String>, value: impl Into<Variant>) -> &mut Self {
+        self.insert(key, value);
         self
     }
 
@@ -31,13 +44,21 @@ impl Context {
         self.clone()
     }
 
-    pub fn insert(&mut self, key: impl ToString, value: Predicate) -> Option<Predicate> {
-        self.entries.insert(key.to_string(), value)
+    pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Variant>) -> Option<Variant> {
+        self.entries.insert(key.into(), value.into())
+    }
+
+    pub fn erase(&mut self, key: impl Into<String>) {
+        self.entries.remove(&key.into());
+    }
+
+    pub fn clear(&mut self) {
+        self.entries.clear();
     }
 
     /// ensure that the other world's set of truths is a subset of this World's truths.
     /// Early exit if a value in other is not present in this world or if the values between worlds do not match
-    pub fn validate(&self, other: &Context) -> bool {
+    pub fn validate(&self, other: &WorldState) -> bool {
         for (name, truth) in &other.entries {
             let Some(val) = self.entries.get(name) else {
                 return false;
@@ -49,29 +70,115 @@ impl Context {
         return true;
     }
 
-    pub fn get(&self, s: impl ToString) -> Predicate {
+    pub fn get(&self, s: impl ToString) -> Option<Variant> {
         let Some(value) = self.entries.get(&s.to_string()) else {
-            return Predicate::None;
+            return None;
         };
-        return value.clone();
+        return Some(value.clone());
     }
 
-    pub fn append(&mut self, other: &Context) {
+    pub fn append(&mut self, other: &WorldState) {
         for (name, truth) in &other.entries {
             self.entries.insert(name.clone(), truth.clone());
         }
     }
 
-    pub fn concat(&self, other: &Context) -> Self {
+    pub fn concat(&self, other: &WorldState) -> Self {
         let mut n_world = self.clone();
         n_world.append(other);
         n_world
     }
 }
 
-impl<I, S> From<I> for Context
+impl Requirements {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn validate(&self, world: &WorldState) -> bool {
+        for (key, value) in self.entries.iter() {
+            let Some(var) = world.get(key) else {
+                return false;
+            };
+            if !value.validate(var) {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn consume(&self, world: &WorldState) -> WorldState {
+        let mut reduced_world = world.clone();
+        for (key, value) in self.entries.iter() {
+            let Some(var) = world.get(key) else {
+                continue;
+            };
+            if value.validate(var) {
+                reduced_world.erase(key); // purge entries that meet requirements
+            }
+        }
+        reduced_world
+    }
+
+    pub fn unmet_requirements(&self, world: &WorldState) -> Requirements {
+        let mut reduced_req = self.clone();
+        for (key, value) in self.entries.iter() {
+            let Some(var) = world.get(key) else {
+                continue;
+            };
+            if value.validate(var) {
+                reduced_req.entries.remove(key); // purge entries that meet requirements
+            }
+        }
+        reduced_req
+    }
+
+    pub fn req(&mut self, key: impl Into<String>, predicate: impl Into<Predicate>) -> &mut Self {
+        self.entries.insert(key.into(), predicate.into());
+        self
+    }
+
+    pub fn req_equals(&mut self, key: impl Into<String>, variant: impl Into<Variant>) -> &mut Self {
+        self.req(key, Predicate::Equals(variant.into()));
+        self
+    }
+
+    pub fn req_greater(
+        &mut self,
+        key: impl Into<String>,
+        variant: impl Into<Variant>,
+    ) -> &mut Self {
+        self.req(key, Predicate::Order(Ordering::Greater, variant.into()));
+        self
+    }
+
+    pub fn req_less(&mut self, key: impl Into<String>, variant: impl Into<Variant>) -> &mut Self {
+        self.req(key, Predicate::Order(Ordering::Less, variant.into()));
+        self
+    }
+
+    pub fn req_has(&mut self, key: impl Into<String>) -> &mut Self {
+        self.req(key.into(), Predicate::HasEntry);
+        self
+    }
+
+    pub fn append(&mut self, req: &Requirements) {
+        self.entries = self
+            .entries
+            .iter()
+            .chain(req.entries.iter())
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect();
+    }
+
+    pub fn build(&mut self) -> Self {
+        self.clone()
+    }
+}
+
+impl<I, S> From<I> for WorldState
 where
-    I: Iterator<Item = (S, Predicate)>,
+    I: Iterator<Item = (S, Variant)>,
     S: ToString,
 {
     fn from(value: I) -> Self {
@@ -86,28 +193,72 @@ where
     }
 }
 
-impl From<Predicate> for Context {
-    fn from(value: Predicate) -> Self {
+impl Predicate {
+    pub fn validate(&self, variant: Variant) -> bool {
+        match self {
+            Predicate::HasEntry => true,
+            Predicate::Equals(var) => variant == *var,
+            Predicate::Order(ord, var) => {
+                if let Variant::Number(num) = var {
+                    if let Variant::Number(num2) = variant {
+                        return num2.total_cmp(num) == *ord;
+                    }
+                }
+                if let Some(pord) = variant.partial_cmp(var) {
+                    return pord == *ord;
+                }
+                false
+            }
+        }
+    }
+}
+
+impl From<Variant> for WorldState {
+    fn from(value: Variant) -> Self {
         let mut map = HashMap::new();
         map.insert("value".into(), value);
         Self { entries: map }
     }
 }
 
-impl From<bool> for Predicate {
+impl From<bool> for Variant {
     fn from(value: bool) -> Self {
         Self::Bool(value)
     }
 }
 
-impl From<String> for Predicate {
+impl From<String> for Variant {
     fn from(value: String) -> Self {
         Self::String(value)
     }
 }
-impl From<&str> for Predicate {
+impl From<&str> for Variant {
     fn from(value: &str) -> Self {
         Self::String(value.to_string())
+    }
+}
+
+impl From<f32> for Variant {
+    fn from(value: f32) -> Self {
+        Self::Number(value)
+    }
+}
+
+impl Into<Requirements> for WorldState {
+    /// Converts the world state to a Requirements struct with all predicates being `Equals`.
+    /// Not terribly customizeable, but that's what you get for taking the easy way you rapscallion!
+    fn into(self) -> Requirements {
+        let mut req = Requirements::new();
+        for (key, var) in self.entries {
+            req.req_equals(key, var);
+        }
+        req
+    }
+}
+
+impl Default for Variant {
+    fn default() -> Self {
+        Self::Bool(true)
     }
 }
 
@@ -117,60 +268,52 @@ mod tests {
 
     #[test]
     fn test_truth_equality() {
-        let bool_true = Predicate::Bool(true);
-        let bool_false = Predicate::Bool(false);
-        let string_empty = Predicate::String("".into());
-        let string_test = Predicate::String("test".into());
-        let none = Predicate::None;
+        let bool_true = Variant::Bool(true);
+        let bool_false = Variant::Bool(false);
+        let string_empty = Variant::String("".into());
+        let string_test = Variant::String("test".into());
 
         // bools matrix
-        assert_eq!(bool_true, Predicate::Bool(true));
-        assert_eq!(bool_false, Predicate::Bool(false));
+        assert_eq!(bool_true, Variant::Bool(true));
+        assert_eq!(bool_false, Variant::Bool(false));
 
         assert_ne!(bool_true, bool_false);
-        assert_ne!(bool_true, Predicate::Bool(false));
-        assert_ne!(bool_false, Predicate::Bool(true));
+        assert_ne!(bool_true, Variant::Bool(false));
+        assert_ne!(bool_false, Variant::Bool(true));
 
         // strings matrix
-        assert_eq!(string_empty, Predicate::String("".into()));
-        assert_eq!(string_test, Predicate::String("test".into()));
+        assert_eq!(string_empty, Variant::String("".into()));
+        assert_eq!(string_test, Variant::String("test".into()));
 
         assert_ne!(string_empty, string_test);
-
-        // nones
-        assert_eq!(none, Predicate::None);
 
         // cross comparisons
         assert_ne!(bool_true, string_empty);
         assert_ne!(bool_true, string_test);
-        assert_ne!(bool_true, none);
 
         assert_ne!(bool_false, string_empty);
         assert_ne!(bool_false, string_test);
-        assert_ne!(bool_false, none);
 
         assert_ne!(string_empty, bool_true);
         assert_ne!(string_empty, bool_false);
-        assert_ne!(string_empty, none);
 
         assert_ne!(string_test, bool_true);
         assert_ne!(string_test, bool_false);
-        assert_ne!(string_test, none);
     }
 
     #[test]
     fn test_world_validation() {
-        let truths_base: Context = vec![
+        let truths_base: WorldState = vec![
             ("safe", true.into()),
             ("running", false.into()),
             ("happy", true.into()),
         ]
         .into_iter()
         .into();
-        let truths_valid: Context = vec![("safe", true.into()), ("happy", true.into())]
+        let truths_valid: WorldState = vec![("safe", true.into()), ("happy", true.into())]
             .into_iter()
             .into();
-        let truths_invalid: Context = vec![("running", true.into())].into_iter().into();
+        let truths_invalid: WorldState = vec![("running", true.into())].into_iter().into();
 
         assert!(truths_base.validate(&truths_valid));
         assert!(!truths_base.validate(&truths_invalid));
@@ -181,7 +324,7 @@ mod tests {
         assert!(!truths_invalid.validate(&truths_base));
         assert!(!truths_invalid.validate(&truths_valid));
 
-        let concatenated_set: Context = vec![("running", true.into())].into_iter().into();
+        let concatenated_set: WorldState = vec![("running", true.into())].into_iter().into();
         let super_set = truths_base.concat(&concatenated_set);
         assert!(!truths_base.validate(&truths_invalid)); // ensure that concating doesn't change base value
         assert!(super_set.validate(&truths_invalid)); // ensure new concatenation is valid for both

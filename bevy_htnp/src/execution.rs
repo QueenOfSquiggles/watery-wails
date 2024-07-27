@@ -1,6 +1,6 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
 
-use crate::{data::Context, planning::HtnAgent, tasks::TaskRegistry};
+use crate::{data::WorldState, planning::HtnAgent, tasks::TaskRegistry};
 
 pub(crate) fn plugin(app: &mut App) {
     app.add_systems(
@@ -13,7 +13,7 @@ pub(crate) fn plugin(app: &mut App) {
 }
 
 #[derive(Component)]
-pub struct HtnAgentWorld(pub Context);
+pub struct HtnAgentWorld(pub WorldState);
 
 #[derive(Component, Debug)]
 pub struct HtnAgentPlan {
@@ -33,7 +33,7 @@ pub enum HtnAgentState {
 
 fn create_plans_for_unplanned_agents(
     query: Query<(Entity, &HtnAgent, Option<&HtnAgentWorld>), Without<HtnAgentPlan>>,
-    world: Res<Context>,
+    world: Res<WorldState>,
     registry: Res<TaskRegistry>,
     mut command: Commands,
 ) {

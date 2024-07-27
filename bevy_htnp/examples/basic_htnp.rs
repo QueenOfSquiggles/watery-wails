@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use bevy::{
     log::{Level, LogPlugin},
     prelude::*,
@@ -24,9 +26,8 @@ fn main() {
     // - Door A/B is closed
 
     // world/context declaration
-    let world = Context::new()
-        .add("in_room_a", true)
-        .add("in_room_b", false)
+    let world = WorldState::new()
+        .add("room", "A")
         .add("door_open", false)
         .add("item_picked_up", false)
         .build();
@@ -35,51 +36,45 @@ fn main() {
     let mut task_registry = TaskRegistry::new();
     task_registry.task::<TaskStub, _>(
         "pickup_item",
-        Context::new()
-            .add("in_room_b", true)
-            .add("item_picked_up", false)
+        Requirements::new()
+            .req_equals("room", "B")
+            .req_equals("item_picked_up", false)
             .build(),
-        Context::new().add("item_picked_up", true).build(),
+        WorldState::new().add("item_picked_up", true).build(),
         1.,
     );
 
     task_registry.task::<TaskStub, _>(
         "goto_b",
-        Context::new()
-            .add("door_open", true)
-            .add("in_room_b", false)
+        Requirements::new()
+            .req_equals("room", "A")
+            .req_equals("door_open", true)
             .build(),
-        Context::new()
-            .add("in_room_b", true)
-            .add("in_room_a", false)
-            .build(),
+        WorldState::new().add("room", "B").build(),
         1.,
     );
 
     task_registry.task::<TaskStub, _>(
         "open_door",
-        Context::new().add("door_open", false).build(),
-        Context::new().add("door_open", true).build(),
+        Requirements::new().req_equals("door_open", false).build(),
+        WorldState::new().add("door_open", true).build(),
         1.,
     );
     // red herring tasks (tasks available to the agent that are unhelpful towards the goal)
     task_registry.task::<TaskStub, _>(
         "goto_a",
-        Context::new()
-            .add("door_open", true)
-            .add("in_room_a", false)
+        Requirements::new()
+            .req_equals("room", "B")
+            .req_equals("door_open", true)
             .build(),
-        Context::new()
-            .add("in_room_a", true)
-            .add("in_room_b", false)
-            .build(),
+        WorldState::new().add("room", "A").build(),
         1.,
     );
 
     task_registry.task::<TaskStub, _>(
         "close_door",
-        Context::new().add("door_open", true).build(),
-        Context::new().add("door_open", false).build(),
+        Requirements::new().req_equals("door_open", false).build(),
+        WorldState::new().add("door_open", false).build(),
         1.,
     );
     app.insert_resource(task_registry); // note: a task registry is already inserted by default.
@@ -92,7 +87,11 @@ fn main() {
     agent.add_task(Task::primitive("open_door"));
     agent.add_task(Task::primitive("close_door"));
 
-    agent.add_goal(Context::new().add("item_picked_up", true).build());
+    agent.add_goal(
+        Requirements::new()
+            .req_equals("item_picked_up", true)
+            .build(),
+    );
 
     // spawn entity
     let entity_agent = app
@@ -101,7 +100,14 @@ fn main() {
         .id();
 
     // make plan
+    let now = Instant::now();
     app.update();
+    let elapsed = now.elapsed();
+
+    const NANOS_PER_MILLI: f64 = 1_000_000.0;
+    let millis = elapsed.as_nanos() as f64 / NANOS_PER_MILLI;
+
+    info!("Single frame took: {}ms", millis);
     // assert!(!has_component::<HtnAgentPlan>(&app, entity_agent));
 }
 

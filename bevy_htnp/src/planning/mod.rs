@@ -10,7 +10,7 @@ use plan_data::PlanningPath;
 use tree::Node;
 
 use crate::{
-    data::Context,
+    data::{Requirements, WorldState},
     tasks::{Task, TaskRegistry},
 };
 
@@ -37,7 +37,7 @@ impl HtnAgent {
         self
     }
 
-    pub fn add_goal(&mut self, goal: Context) -> &mut Self {
+    pub fn add_goal(&mut self, goal: Requirements) -> &mut Self {
         self.goals.push(Goal(goal));
         self
     }
@@ -45,13 +45,13 @@ impl HtnAgent {
         self.current_plan.is_some()
     }
 
-    pub fn get_next_goal(&self, world: &Context) -> Option<Goal> {
+    pub fn get_next_goal(&self, world: &WorldState) -> Option<Goal> {
         self.goal_eval.next_goal(&self.goals, world)
     }
 
     pub fn create_plan(
         &self,
-        world: Context,
+        world: WorldState,
         task_registry: &TaskRegistry,
     ) -> Result<plan_data::PlanningPath, ()> {
         // this task tree is somewhat expensive to compute, but it is also verstile
@@ -62,6 +62,7 @@ impl HtnAgent {
         }
         let Some(target_plan) = plans
             .into_iter()
+            .filter(|n| n.value.cost > 0.)
             .min_by(|a, b| a.value.cost.total_cmp(&b.value.cost))
         else {
             return Err(());
@@ -88,7 +89,7 @@ impl HtnAgent {
 
     fn generate_task_tree(
         &self,
-        world: Context,
+        world: WorldState,
         task_registry: &TaskRegistry,
     ) -> Vec<Rc<Node<PlanNode>>> {
         let Some(goal) = self.goal_eval.next_goal(&self.goals, &world) else {
@@ -102,14 +103,15 @@ impl HtnAgent {
 
         // TODO: extract these into bevy resource
         const MAX_ITER_DEPTH: u32 = 100_00;
-        const MAX_NODE_DEPTH: u32 = 16;
+        // this allows every task available to be used once. Which should generally prevent recursion but won't always
+        let max_node_depth: u32 = self.available_tasks.len() as u32;
         // seed node
         active_nodes.push_front(Rc::new(Node::<PlanNode> {
             value: PlanNode {
                 task: None,
                 world: world.clone(),
                 cost: 0.,
-                depth: 1,
+                depth: 0,
             },
             parent: None,
         }));
@@ -125,18 +127,24 @@ impl HtnAgent {
             let Some(node) = active_nodes.pop_front() else {
                 break;
             };
-            if node.value.world.validate(&goal.0) {
+            if goal.0.validate(&node.value.world) {
+                // found a leaf! stop processing it
+                eprintln!("Found Leaf Node: {:#?}", node.value);
                 valid_nodes.push(node);
                 continue;
             }
-            if node.value.depth >= MAX_NODE_DEPTH {
+            if node.value.depth >= max_node_depth {
                 // purges runaway branches
                 continue;
             }
             if self.has_recursion(&node) {
-                continue; // drops node that is a recursive branch
+                // drops node that is a recursive branch
+                continue;
             }
             let tasks = self.possible_tasks(&node.value.world, task_registry);
+            if tasks.is_empty() {
+                eprintln!("No possible tasks for node: {:#?}", node.value);
+            }
             for t in tasks {
                 if let Some(new_node) = Self::make_node(node.clone(), &t, task_registry) {
                     active_nodes.push_front(Rc::new(new_node));
@@ -148,6 +156,7 @@ impl HtnAgent {
                 break;
             }
         }
+        eprintln!("Found {} leaf nodes", valid_nodes.len());
         valid_nodes
     }
 
@@ -192,12 +201,22 @@ impl HtnAgent {
         t0 == t2 && t1 == t4
     }
 
-    fn possible_tasks(&self, world: &Context, task_registry: &TaskRegistry) -> Vec<Task> {
-        self.available_tasks
-            .clone()
-            .into_iter()
-            .filter(|p| world.validate(&task_registry.precon(p).unwrap_or_default()))
-            .collect()
+    fn possible_tasks(&self, world: &WorldState, task_registry: &TaskRegistry) -> Vec<Task> {
+        // self.available_tasks
+        //     .clone()
+        //     .into_iter()
+        //     .filter(|p| task_registry.precon(p).unwrap_or_default().validate(world))
+        //     .collect()
+        let mut n_vec = Vec::new();
+        for task in self.available_tasks.iter() {
+            let Some(precon) = task_registry.precon(task) else {
+                continue;
+            };
+            if precon.validate(world) {
+                n_vec.push(task.clone());
+            }
+        }
+        n_vec
     }
     fn make_node(
         parent: Rc<Node<PlanNode>>,
@@ -222,7 +241,7 @@ impl HtnAgent {
 #[derive(Debug, Clone)]
 struct PlanNode {
     task: Option<Task>,
-    world: Context,
+    world: WorldState,
     cost: f32,
     depth: u32,
 }
@@ -232,7 +251,10 @@ mod tests {
 
     use bevy::prelude::Component;
 
-    use crate::tasks::Task;
+    use crate::{
+        data::{Requirements, Variant},
+        tasks::Task,
+    };
 
     use super::*;
 
@@ -243,33 +265,75 @@ mod tests {
     fn goal_picking_planning() {
         let mut agent = HtnAgent::default();
         agent.goal_eval = GoalEvaluation::Top;
-        let goal_a: Context = vec![("A", true.into())].into_iter().into();
-        let goal_b: Context = vec![("B", true.into())].into_iter().into();
-        let goal_c: Context = vec![("C", true.into())].into_iter().into();
+        let goal_a: WorldState = vec![("A", true.into())].into_iter().into();
+        let goal_b: WorldState = vec![("B", true.into())].into_iter().into();
+        let goal_c: WorldState = vec![("C", true.into())].into_iter().into();
 
-        agent.add_goal(goal_a.clone());
-        agent.add_goal(goal_b.clone());
-        agent.add_goal(goal_c.clone());
+        let world_ab = WorldState::new().add("A", true).add("B", true).build();
+        let world_b = WorldState::new().add("B", true).build();
+        let world_not_a = WorldState::new().add("A", false).add("B", true).build();
 
-        let next_goal = agent.get_next_goal(&Context::new());
+        agent.add_goal(goal_a.clone().into());
+        agent.add_goal(goal_b.clone().into());
+        agent.add_goal(goal_c.clone().into());
+
+        let next_goal = agent.get_next_goal(&WorldState::new());
         assert!(next_goal.is_some());
         let next_goal = next_goal.unwrap();
-        assert!(goal_a.validate(&next_goal.0));
-        assert!(!goal_b.validate(&next_goal.0));
-        assert!(!goal_c.validate(&next_goal.0));
+
+        assert!(next_goal.0.validate(&world_ab));
+        assert!(!next_goal.0.validate(&world_b));
+        assert!(!next_goal.0.validate(&world_not_a));
+    }
+
+    #[test]
+    fn requirements_validation() {
+        let req = Requirements::new()
+            .req_equals("bool_eq", true)
+            .req_equals("str_eq", "something")
+            .req_equals("num_eq", 3.1415)
+            .req_has("any_key")
+            .req_greater("num_grt", 0.0)
+            .req_less("num_lst", 0.0)
+            .build();
+
+        let valid_world = WorldState::new()
+            .add("bool_eq", true)
+            .add("str_eq", "something")
+            .add("num_eq", 3.1415)
+            .add("any_key", 25.)
+            .add("num_grt", 10.)
+            .add("num_lst", -12.36)
+            .build();
+
+        let invalid_world = WorldState::new()
+            .add("bool_eq", false)
+            .add("str_eq", "else")
+            .add("num_eq", 3.)
+            .add("num_grt", -10.)
+            .add("num_lst", 12.36)
+            .build();
+
+        assert!(req.validate(&valid_world));
+        assert!(!req.validate(&WorldState::new()));
+        assert!(!req.validate(&invalid_world));
     }
 
     #[test]
     fn single_task_planning() {
-        let precon = Context::new().add("hungry", true).build();
-        let postcon = Context::new().add("hungry", true).build();
         let mut registry = TaskRegistry::new();
-        registry.task::<TaskStub, _>("test", precon.clone(), postcon.clone(), 0.);
+        registry.task::<TaskStub, _>(
+            "test",
+            Requirements::new().req_equals("hungry", true).build(),
+            WorldState::new().add("hungry", false).build(),
+            1.,
+        );
 
         let mut agent = HtnAgent::default();
         agent.add_task(Task::Primitive("test".into()));
-        agent.add_goal(postcon);
-        let result = agent.create_plan(precon, &registry);
+        agent.add_goal(Requirements::new().req_equals("hungry", false).build());
+
+        let result = agent.create_plan(WorldState::new().add("hungry", true).build(), &registry);
 
         eprintln!("{:#?}", result);
 
@@ -284,41 +348,45 @@ mod tests {
         let mut registry = TaskRegistry::new();
         registry.task::<TaskStub, _>(
             "goto_door",
-            Context::new()
-                .add("in_room_a", true)
-                .add("near_door", false)
+            Requirements::new()
+                .req_equals("room", "A")
+                .req_equals("near_door", false)
                 .build(),
-            Context::new().add("near_door", true).build(),
-            0.,
+            WorldState::new().add("near_door", true).build(),
+            1.,
         );
         registry.task::<TaskStub, _>(
             "open_door",
-            Context::new()
-                .add("near_door", true)
-                .add("door_open", false)
+            Requirements::new()
+                .req_equals("near_door", true)
+                .req_equals("door_open", false)
                 .build(),
-            Context::new().add("door_open", true).build(),
-            0.,
+            // WorldState::new()
+            //     .add("near_door", true)
+            //     .add("door_open", false)
+            //     .build(),
+            WorldState::new().add("door_open", true).build(),
+            1.,
         );
         registry.task::<TaskStub, _>(
             "walk_thru_door",
-            Context::new()
-                .add("in_room_a", true)
-                .add("door_open", true)
-                .add("near_door", true)
+            Requirements::new()
+                .req_equals("room", "A")
+                .req_equals("door_open", true)
+                .req_equals("near_door", true)
                 .build(),
-            Context::new().add("in_room_a", false).build(),
-            0.,
+            WorldState::new().add("room", "B").build(),
+            1.,
         );
         agent.add_task(Task::primitive("goto_door"));
         agent.add_task(Task::primitive("open_door"));
         agent.add_task(Task::primitive("walk_thru_door"));
 
-        agent.add_goal(Context::new().add("in_room_a", false).build());
+        agent.add_goal(Requirements::new().req_equals("room", "B").build());
 
         let result = agent.create_plan(
-            Context::new()
-                .add("in_room_a", true)
+            WorldState::new()
+                .add("room", "A")
                 .add("near_door", false)
                 .add("door_open", false)
                 .build(),
