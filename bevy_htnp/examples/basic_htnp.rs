@@ -88,9 +88,11 @@ fn main() {
     agent.add_task(Task::primitive("close_door"));
 
     agent.add_goal(
+        "Pick up item",
         Requirements::new()
             .req_equals("item_picked_up", true)
             .build(),
+        1.0,
     );
 
     // spawn entity

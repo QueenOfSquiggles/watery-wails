@@ -1,7 +1,9 @@
 use bevy::prelude::*;
-use std::{cmp::Ordering, collections::HashMap};
+use std::{cmp::Ordering, collections::HashMap, time::Duration};
 
-pub(crate) fn plugin(_app: &mut App) {}
+pub(crate) fn plugin(app: &mut App) {
+    app.insert_resource(HtnSettings::default());
+}
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Variant {
@@ -28,6 +30,12 @@ pub enum Predicate {
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct Requirements {
     entries: HashMap<String, Predicate>,
+}
+
+#[derive(Default, Clone, Debug, PartialEq, Resource)]
+pub struct HtnSettings {
+    pub frame_processing_limit: Option<Duration>,
+    pub node_branch_limit: Option<u32>,
 }
 
 impl WorldState {

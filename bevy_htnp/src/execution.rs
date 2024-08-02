@@ -1,12 +1,15 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
 
-use crate::{data::WorldState, planning::HtnAgent, tasks::TaskRegistry};
+use crate::{
+    data::WorldState, planning::HtnAgent, prelude::plan_data::TimeSlicedTreeGen,
+    tasks::TaskRegistry,
+};
 
 pub(crate) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
         (
-            create_plans_for_unplanned_agents,
+            extract_plans_for_unplanned_agents,
             handle_agent_state_changes,
         ),
     );
@@ -31,23 +34,33 @@ pub enum HtnAgentState {
     Failure,
 }
 
-fn create_plans_for_unplanned_agents(
-    query: Query<(Entity, &HtnAgent, Option<&HtnAgentWorld>), Without<HtnAgentPlan>>,
+fn extract_plans_for_unplanned_agents(
+    query: Query<
+        (
+            Entity,
+            &HtnAgent,
+            &TimeSlicedTreeGen,
+            Option<&HtnAgentWorld>,
+        ),
+        Without<HtnAgentPlan>,
+    >,
     world: Res<WorldState>,
-    registry: Res<TaskRegistry>,
     mut command: Commands,
 ) {
-    for (entity, agent, ctx) in query.iter() {
+    for (entity, agent, tree, ctx) in query.iter() {
         let mut agent_context = world.clone();
         if let Some(w) = ctx {
             agent_context.append(&w.0);
         }
-        let plan = agent.create_plan(agent_context, &registry);
-        let Ok(plan_data) = plan else {
+        let Some(goal) = agent.get_next_goal(&agent_context) else {
+            continue;
+        };
+
+        let Some(plan) = tree.plans.get(&goal.name) else {
             continue;
         };
         command.entity(entity).insert(HtnAgentPlan {
-            plan_stack: plan_data.decompose_tasks(),
+            plan_stack: plan.decompose_tasks(),
         });
     }
 }

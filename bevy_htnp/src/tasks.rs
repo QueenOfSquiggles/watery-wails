@@ -185,6 +185,12 @@ pub enum Task {
 }
 
 impl Task {
+    pub fn decompose_iter(iter: impl Iterator<Item = Task>) -> Vec<String> {
+        iter.map(|t| t.decompose())
+            .reduce(|agg, item| agg.into_iter().chain(item.into_iter()).collect())
+            .unwrap_or_default()
+    }
+
     pub fn name(&self) -> String {
         match self {
             Task::Primitive(name) => name,

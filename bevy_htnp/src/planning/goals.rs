@@ -24,4 +24,18 @@ impl GoalEvaluation {
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct Goal(pub Requirements);
+pub struct Goal {
+    pub name: String,
+    pub requires: Requirements,
+    pub utility: f32, // TODO: replace with some kind of function reference or boxed closure
+}
+
+impl Goal {
+    pub fn new(name: impl Into<String>, requires: impl Into<Requirements>, utility: f32) -> Self {
+        Self {
+            name: name.into(),
+            requires: requires.into(),
+            utility,
+        }
+    }
+}
