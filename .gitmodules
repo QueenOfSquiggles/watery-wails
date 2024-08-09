@@ -1,0 +1,6 @@
+[submodule "bevy_htnp"]
+	path = bevy_htnp
+	url = git@github.com:QueenOfSquiggles/bevy_htnp.git
+[submodule "bevy_steamworks"]
+	path = bevy_steamworks
+	url = git@github.com:QueenOfSquiggles/bevy_steamworks.git
