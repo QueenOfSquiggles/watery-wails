@@ -1,21 +1,33 @@
 use bevy::prelude::*;
-use std::{cmp::Ordering, collections::HashMap, time::Duration};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    sync::{Arc, LazyLock, Mutex},
+    time::Duration,
+};
 
 pub(crate) fn plugin(app: &mut App) {
     app.insert_resource(HtnSettings::default());
 }
 
+type UniqueNameStorage = &'static str;
+pub static UNIQUE_NAME_REGISTRY: LazyLock<Mutex<HashMap<String, Arc<UniqueNameStorage>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Hash)]
+pub struct UniqueName(Arc<UniqueNameStorage>);
+
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Variant {
     Bool(bool),
-    String(String),
+    String(UniqueName),
     Number(f32),
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Resource)]
 /// For an HTN, a context is simply a collection of known 'predicate's.
 pub struct WorldState {
-    entries: HashMap<String, Variant>,
+    entries: HashMap<UniqueName, Variant>,
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -29,13 +41,28 @@ pub enum Predicate {
 
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct Requirements {
-    entries: HashMap<String, Predicate>,
+    entries: HashMap<UniqueName, Predicate>,
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Resource)]
 pub struct HtnSettings {
     pub frame_processing_limit: Option<Duration>,
     pub node_branch_limit: Option<u32>,
+    pub disable_priority_sort: Option<bool>,
+}
+
+impl UniqueName {
+    pub fn new(string: &'static str) -> Self {
+        let mut lock = UNIQUE_NAME_REGISTRY
+            .lock()
+            .expect("Propagating mutex thread panic");
+
+        Self(
+            lock.entry(string.into())
+                .or_insert(Arc::new(string))
+                .clone(),
+        )
+    }
 }
 
 impl WorldState {
@@ -43,7 +70,7 @@ impl WorldState {
         Self::default()
     }
 
-    pub fn add(&mut self, key: impl Into<String>, value: impl Into<Variant>) -> &mut Self {
+    pub fn add(&mut self, key: impl Into<UniqueName>, value: impl Into<Variant>) -> &mut Self {
         self.insert(key, value);
         self
     }
@@ -52,11 +79,15 @@ impl WorldState {
         self.clone()
     }
 
-    pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Variant>) -> Option<Variant> {
+    pub fn insert(
+        &mut self,
+        key: impl Into<UniqueName>,
+        value: impl Into<Variant>,
+    ) -> Option<Variant> {
         self.entries.insert(key.into(), value.into())
     }
 
-    pub fn erase(&mut self, key: impl Into<String>) {
+    pub fn erase(&mut self, key: impl Into<UniqueName>) {
         self.entries.remove(&key.into());
     }
 
@@ -78,8 +109,8 @@ impl WorldState {
         return true;
     }
 
-    pub fn get(&self, s: impl ToString) -> Option<Variant> {
-        let Some(value) = self.entries.get(&s.to_string()) else {
+    pub fn get(&self, s: impl Into<UniqueName>) -> Option<Variant> {
+        let Some(value) = self.entries.get(&s.into()) else {
             return None;
         };
         return Some(value.clone());
@@ -105,7 +136,7 @@ impl Requirements {
 
     pub fn validate(&self, world: &WorldState) -> bool {
         for (key, value) in self.entries.iter() {
-            let Some(var) = world.get(key) else {
+            let Some(var) = world.get(key.clone()) else {
                 return false;
             };
             if !value.validate(var) {
@@ -118,11 +149,11 @@ impl Requirements {
     pub fn consume(&self, world: &WorldState) -> WorldState {
         let mut reduced_world = world.clone();
         for (key, value) in self.entries.iter() {
-            let Some(var) = world.get(key) else {
+            let Some(var) = world.get(key.clone()) else {
                 continue;
             };
             if value.validate(var) {
-                reduced_world.erase(key); // purge entries that meet requirements
+                reduced_world.erase(key.clone()); // purge entries that meet requirements
             }
         }
         reduced_world
@@ -131,7 +162,7 @@ impl Requirements {
     pub fn unmet_requirements(&self, world: &WorldState) -> Requirements {
         let mut reduced_req = self.clone();
         for (key, value) in self.entries.iter() {
-            let Some(var) = world.get(key) else {
+            let Some(var) = world.get(key.clone()) else {
                 continue;
             };
             if value.validate(var) {
@@ -141,31 +172,43 @@ impl Requirements {
         reduced_req
     }
 
-    pub fn req(&mut self, key: impl Into<String>, predicate: impl Into<Predicate>) -> &mut Self {
+    pub fn req(
+        &mut self,
+        key: impl Into<UniqueName>,
+        predicate: impl Into<Predicate>,
+    ) -> &mut Self {
         self.entries.insert(key.into(), predicate.into());
         self
     }
 
-    pub fn req_equals(&mut self, key: impl Into<String>, variant: impl Into<Variant>) -> &mut Self {
+    pub fn req_equals(
+        &mut self,
+        key: impl Into<UniqueName>,
+        variant: impl Into<Variant>,
+    ) -> &mut Self {
         self.req(key, Predicate::Equals(variant.into()));
         self
     }
 
     pub fn req_greater(
         &mut self,
-        key: impl Into<String>,
+        key: impl Into<UniqueName>,
         variant: impl Into<Variant>,
     ) -> &mut Self {
         self.req(key, Predicate::Order(Ordering::Greater, variant.into()));
         self
     }
 
-    pub fn req_less(&mut self, key: impl Into<String>, variant: impl Into<Variant>) -> &mut Self {
+    pub fn req_less(
+        &mut self,
+        key: impl Into<UniqueName>,
+        variant: impl Into<Variant>,
+    ) -> &mut Self {
         self.req(key, Predicate::Order(Ordering::Less, variant.into()));
         self
     }
 
-    pub fn req_has(&mut self, key: impl Into<String>) -> &mut Self {
+    pub fn req_has(&mut self, key: impl Into<UniqueName>) -> &mut Self {
         self.req(key.into(), Predicate::HasEntry);
         self
     }
@@ -187,14 +230,15 @@ impl Requirements {
 impl<I, S> From<I> for WorldState
 where
     I: Iterator<Item = (S, Variant)>,
-    S: ToString,
+    S: Into<UniqueName>,
 {
     fn from(value: I) -> Self {
         let mut map = HashMap::new();
 
         for (name, truth) in value {
-            if let Some(_) = map.insert(name.to_string(), truth) {
-                warn!("Duplicate entries for key: {}", name.to_string());
+            let un: UniqueName = name.into();
+            if let Some(_) = map.insert(un.clone(), truth) {
+                warn!("Duplicate entries for key: {:?}", un);
             }
         }
         Self { entries: map }
@@ -235,14 +279,15 @@ impl From<bool> for Variant {
     }
 }
 
-impl From<String> for Variant {
-    fn from(value: String) -> Self {
+impl From<UniqueName> for Variant {
+    fn from(value: UniqueName) -> Self {
         Self::String(value)
     }
 }
-impl From<&str> for Variant {
-    fn from(value: &str) -> Self {
-        Self::String(value.to_string())
+
+impl Into<Variant> for &'static str {
+    fn into(self) -> Variant {
+        Variant::String(self.into())
     }
 }
 
@@ -261,6 +306,12 @@ impl Into<Requirements> for WorldState {
             req.req_equals(key, var);
         }
         req
+    }
+}
+
+impl Into<UniqueName> for &'static str {
+    fn into(self) -> UniqueName {
+        UniqueName::new(self)
     }
 }
 

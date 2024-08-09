@@ -8,17 +8,18 @@ use std::{
 
 use bevy::{
     log::error,
-    prelude::{Component, Query, Res},
+    prelude::{Component, Query, Res, With},
 };
 
 use crate::{
     data::{HtnSettings, WorldState},
+    prelude::HtnAgentWorld,
     tasks::{Task, TaskRegistry},
 };
 
 use std::collections::VecDeque;
 
-use super::{goals::Goal, tree::Node};
+use super::{goals::Goal, tree::Node, HtnAgent};
 
 #[derive(Default, Clone)]
 pub struct Plan {
@@ -46,19 +47,19 @@ impl Debug for Plan {
 
 #[derive(Component)]
 pub struct TimeSlicedTreeGen {
-    active_nodes: VecDeque<Arc<Node<PlanNode>>>,
-    valid_nodes: Vec<Arc<Node<PlanNode>>>,
-    goals: Vec<Goal>,
+    pub active_nodes: VecDeque<Arc<Node<PlanNode>>>,
+    pub valid_nodes: Vec<Arc<Node<PlanNode>>>,
+    pub goals: Vec<Goal>,
     pub plans: HashMap<String, Plan>,
-    available_tasks: Vec<Task>,
+    pub available_tasks: Vec<Task>,
 }
 
 #[derive(Debug, Clone)]
-struct PlanNode {
-    task: Option<Task>,
-    world: WorldState,
-    cost: f32,
-    depth: u32,
+pub struct PlanNode {
+    pub task: Option<Task>,
+    pub world: WorldState,
+    pub cost: f32,
+    pub depth: u32,
 }
 
 impl TimeSlicedTreeGen {
@@ -87,6 +88,7 @@ impl TimeSlicedTreeGen {
     pub fn generate_for_duration(
         &mut self,
         registry: &TaskRegistry,
+        current_world: &WorldState,
         duration: Option<Duration>,
         max_node_depth: Option<u32>,
     ) {
@@ -94,6 +96,8 @@ impl TimeSlicedTreeGen {
             return;
         };
         let timer = Instant::now();
+        self.try_seed_active_nodes(registry, current_world);
+
         loop {
             self.generate_single(&goal, registry, max_node_depth);
             self.try_emit_single(&goal);
@@ -109,6 +113,49 @@ impl TimeSlicedTreeGen {
         }
     }
 
+    /// rather that limiting generation for a specific time frame, hold the thread until processing is completed. This isn't great on performance, but does create results and is good for testing
+    pub fn generate_to_completion(
+        &mut self,
+        registry: &TaskRegistry,
+        current_world: &WorldState,
+        max_node_depth: Option<u32>,
+    ) {
+        let Some(goal) = self.goals.last().cloned() else {
+            return;
+        };
+        self.try_seed_active_nodes(registry, current_world);
+
+        loop {
+            self.generate_single(&goal, registry, max_node_depth);
+            self.try_emit_single(&goal);
+
+            if self.active_nodes.is_empty() {
+                break;
+            }
+        }
+    }
+
+    fn try_seed_active_nodes(&mut self, registry: &TaskRegistry, current_world: &WorldState) {
+        if !self.active_nodes.is_empty() {
+            return;
+        }
+        let seeds = self.possible_tasks(current_world, registry);
+        for s in seeds {
+            let Some(data) = registry.get_task(&s) else {
+                continue;
+            };
+            self.active_nodes.push_back(Arc::new(Node {
+                value: PlanNode {
+                    task: Some(s),
+                    world: current_world.clone().concat(data.postconditions()),
+                    cost: data.cost(&current_world),
+                    depth: 0,
+                },
+                parent: None,
+            }));
+        }
+    }
+
     pub fn try_emit_single(&mut self, goal: &Goal) {
         let Some(valid) = self.valid_nodes.pop() else {
             return;
@@ -117,13 +164,12 @@ impl TimeSlicedTreeGen {
 
         if let Some(prev_plan) = self.plans.get(&goal.name) {
             // ensure the plan we made is actually better than what was available
-            if plan.cost < prev_plan.cost {
-                self.plans.insert(goal.name.clone(), plan);
+            if plan.cost > prev_plan.cost {
+                return;
             }
-        } else {
-            // first plan for this goal
-            self.plans.insert(goal.name.clone(), plan);
         }
+
+        self.plans.insert(goal.name.clone(), plan);
     }
 
     pub fn generate_single(
@@ -156,7 +202,7 @@ impl TimeSlicedTreeGen {
     fn unravel_plan(leaf: &Arc<Node<PlanNode>>) -> Plan {
         let mut curr = leaf.clone();
         let mut sequence = Vec::<Task>::new();
-        while curr.parent.is_some() {
+        loop {
             let val = curr.value.clone();
             let Some(task) = val.task else {
                 error!("Found a None task while unravelling task graph");
@@ -164,6 +210,7 @@ impl TimeSlicedTreeGen {
             };
             sequence.push(task);
             let Some(next_curr) = curr.parent.clone() else {
+                // effectively a do-while parent.is_some
                 break;
             };
             curr = next_curr;
@@ -253,15 +300,21 @@ impl TimeSlicedTreeGen {
     }
 }
 
-pub(crate) fn system_update_time_sliced_tree_gen(
-    mut query: Query<&mut TimeSlicedTreeGen>,
+pub fn system_update_time_sliced_tree_gen(
+    mut query: Query<(&mut TimeSlicedTreeGen, Option<&HtnAgentWorld>), With<HtnAgent>>,
     settings: Res<HtnSettings>,
     registry: Res<TaskRegistry>,
+    world: Res<WorldState>,
 ) {
     let timer = Instant::now();
-    for mut sliced in query.iter_mut() {
+    for (mut sliced, agent_world) in query.iter_mut() {
+        let active_world = match agent_world {
+            Some(c) => world.concat(&c.0),
+            None => world.to_owned(),
+        };
         sliced.generate_for_duration(
             &registry,
+            &active_world,
             settings.frame_processing_limit,
             settings.node_branch_limit,
         );
@@ -276,8 +329,6 @@ pub(crate) fn system_update_time_sliced_tree_gen(
 
 #[cfg(test)]
 mod tests {
-
-    use std::time::Duration;
 
     use bevy::prelude::Component;
     use goals::Goal;
@@ -306,7 +357,11 @@ mod tests {
         let mut gen =
             TimeSlicedTreeGen::new_initialized(vec![Task::primitive("test")], vec![goal.clone()]);
         // here the two limits are mainly to avoid execessive generation times
-        gen.generate_for_duration(&registry, Some(Duration::from_secs(5)), Some(8));
+        gen.generate_to_completion(
+            &registry,
+            &WorldState::new().add("hungry", true).build(),
+            Some(8),
+        );
 
         let result = gen.plans.get(&goal.name);
 
@@ -364,8 +419,13 @@ mod tests {
             ],
             vec![goal.clone()],
         );
+        let initial_world = WorldState::new()
+            .add("room", "A")
+            .add("near_door", false)
+            .add("door_open", false)
+            .build();
         // here the two limits are mainly to avoid execessive generation times
-        gen.generate_for_duration(&registry, Some(Duration::from_secs(5)), Some(8));
+        gen.generate_to_completion(&registry, &initial_world, Some(8));
 
         let result = gen.plans.get(&goal.name);
 

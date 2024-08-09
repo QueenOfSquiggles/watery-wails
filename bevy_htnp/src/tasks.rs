@@ -178,7 +178,7 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Task {
     Primitive(String),
     Macro(Vec<Task>, String),

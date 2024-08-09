@@ -1,33 +1,36 @@
-use std::{collections::VecDeque, fmt::Debug, sync::Arc};
-
 use bevy::{
-    app::{App, Update},
-    log::{debug, error},
-    prelude::Component,
+    app::App,
+    ecs::component::{ComponentHooks, StorageType},
+    prelude::{Component, Query},
 };
 use goals::{Goal, GoalEvaluation};
-use tree::Node;
+use providers::{GoalProvider, TaskProvider};
 
 use crate::{
     data::{Requirements, WorldState},
-    tasks::{Task, TaskRegistry},
+    events::observer_handle_invalidated_plan,
+    tasks::Task,
 };
 
 pub mod goals;
 pub mod plan_data;
+pub mod providers;
 pub mod tree;
 
 pub(crate) fn plugin(app: &mut App) {
-    app.add_systems(Update, (plan_data::system_update_time_sliced_tree_gen));
+    providers::plugin(app);
 }
 
-#[derive(Component, Default)]
+#[derive(Default)]
 pub struct HtnAgent {
-    goals: Vec<Goal>,
-    current_plan: Option<plan_data::Plan>,
-    available_tasks: Vec<Task>,
-    goal_eval: GoalEvaluation,
+    pub goals: Vec<Goal>,
+    pub current_plan: Option<plan_data::Plan>,
+    pub available_tasks: Vec<Task>,
+    pub goal_eval: GoalEvaluation,
 }
+
+#[derive(Component, Default, Clone, Debug)]
+pub struct HtnAgentPlanningPriority(pub f32);
 
 impl HtnAgent {
     pub fn new() -> Self {
@@ -56,15 +59,49 @@ impl HtnAgent {
     }
 }
 
+pub fn system_collect_agent_tasks_from_providers(
+    mut query: Query<(&dyn TaskProvider, &mut HtnAgent)>,
+) {
+    for (providers, mut agent) in query.iter_mut() {
+        let mut tasks = Vec::<Task>::new();
+        for p in providers {
+            tasks.append(&mut p.tasks());
+        }
+        agent.available_tasks = tasks;
+    }
+}
+
+pub fn system_collect_agent_goals_from_providers(
+    mut query: Query<(&dyn GoalProvider, &mut HtnAgent)>,
+) {
+    for (providers, mut agent) in query.iter_mut() {
+        let mut goals = Vec::<Goal>::new();
+        for p in providers {
+            goals.append(&mut p.goals());
+        }
+        agent.goals = goals;
+    }
+}
+
+impl Component for HtnAgent {
+    const STORAGE_TYPE: StorageType = StorageType::Table;
+    fn register_component_hooks(hooks: &mut ComponentHooks) {
+        // when an HTN Agent is created, start observing for a plan invalidated event.
+        // This allows any system to easily mark the current plan as invalid without excessive dependencies
+
+        hooks.on_add(|mut world, entity, _| {
+            world
+                .commands()
+                .entity(entity)
+                .observe(observer_handle_invalidated_plan);
+        });
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
-    use bevy::prelude::Component;
-
-    use crate::{
-        data::{Requirements, Variant},
-        tasks::Task,
-    };
+    use crate::data::Requirements;
 
     use super::*;
 

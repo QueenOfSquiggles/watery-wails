@@ -96,7 +96,7 @@ fn main() {
     );
 
     // spawn entity
-    let entity_agent = app
+    let _ /*entity_agent*/ = app
         .world_mut()
         .spawn((Transform::default(), agent, HtnAgentWorld(world)))
         .id();
@@ -134,6 +134,6 @@ fn system_taskstub(query: Query<(Entity, &HtnAgentState), With<TaskStub>>, mut c
 }
 
 // Assertion Utility
-fn has_component<C: Component>(app: &App, entity: Entity) -> bool {
-    app.world().get::<C>(entity).is_some()
-}
+// fn has_component<C: Component>(app: &App, entity: Entity) -> bool {
+//     app.world().get::<C>(entity).is_some()
+// }

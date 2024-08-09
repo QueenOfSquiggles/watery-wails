@@ -1,19 +1,11 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
 
 use crate::{
-    data::WorldState, planning::HtnAgent, prelude::plan_data::TimeSlicedTreeGen,
+    data::{HtnSettings, WorldState},
+    planning::HtnAgent,
+    prelude::{plan_data::TimeSlicedTreeGen, HtnAgentPlanningPriority},
     tasks::TaskRegistry,
 };
-
-pub(crate) fn plugin(app: &mut App) {
-    app.add_systems(
-        Update,
-        (
-            extract_plans_for_unplanned_agents,
-            handle_agent_state_changes,
-        ),
-    );
-}
 
 #[derive(Component)]
 pub struct HtnAgentWorld(pub WorldState);
@@ -34,20 +26,39 @@ pub enum HtnAgentState {
     Failure,
 }
 
-fn extract_plans_for_unplanned_agents(
+pub fn system_extract_plans_for_unplanned_agents(
     query: Query<
         (
             Entity,
             &HtnAgent,
             &TimeSlicedTreeGen,
             Option<&HtnAgentWorld>,
+            Option<&HtnAgentPlanningPriority>,
         ),
         Without<HtnAgentPlan>,
     >,
     world: Res<WorldState>,
+    settings: Res<HtnSettings>,
     mut command: Commands,
 ) {
-    for (entity, agent, tree, ctx) in query.iter() {
+    let mut vec: Vec<(
+        Entity,
+        &HtnAgent,
+        &TimeSlicedTreeGen,
+        Option<&HtnAgentWorld>,
+        Option<&HtnAgentPlanningPriority>,
+    )> = query.iter().collect();
+
+    if !settings.disable_priority_sort.unwrap_or_default() {
+        // TODO: someday this should be replaced by bevy's table sorting feature that is in development as of writing
+        vec.sort_by(|a, b| {
+            a.4.cloned()
+                .unwrap_or_default()
+                .0
+                .total_cmp(&b.4.cloned().unwrap_or_default().0)
+        });
+    }
+    for (entity, agent, tree, ctx, _) in vec {
         let mut agent_context = world.clone();
         if let Some(w) = ctx {
             agent_context.append(&w.0);
@@ -65,7 +76,7 @@ fn extract_plans_for_unplanned_agents(
     }
 }
 
-fn handle_agent_state_changes(
+pub fn system_handle_agent_state_changes(
     mut query: Query<(
         Entity,
         &mut HtnAgentPlan,
