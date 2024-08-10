@@ -2,31 +2,30 @@
 
 use bevy::prelude::*;
 use bevy_htnp::prelude::HtnPlanningPlugin;
+use bevy_steamworks::SteamworksPlugin;
 use game::GamePlugin;
-use gen::GAME_VERSION;
 
 mod game;
 mod gen;
 
 fn main() {
     let mut app = App::new();
+    #[cfg(not(target_family = "wasm"))]
+    {
+        // steam requires being initialized before render plugins. Looks gross but I guess I gotta do it this way.
+        if let Ok(steam_plugin) = SteamworksPlugin::init_app(gen::STEAM_APP_ID) {
+            app.add_plugins(steam_plugin);
+        }
+    }
+
     app.add_plugins(DefaultPlugins)
         .add_plugins(HtnPlanningPlugin::new())
-        .add_plugins(GamePlugin) // game systems & data
-        .add_systems(Startup, || {
-            info!("Watery Wails '{}' starting", GAME_VERSION)
-        });
+        .add_plugins(GamePlugin); // game systems & data
     #[cfg(target_family = "wasm")]
     {
         // this helps WASM builds to work better especially with ItchIO, according to an official bevy example.
         use bevy::asset::AssetMetaCheck;
         app = app.insert_resource(AssetMetaCheck::Never);
-    }
-    // this is a new line insert to test dependency eval
-    #[cfg(not(target_family = "wasm"))]
-    {
-        // include for all desktop builds
-        //TODO: init bevy-panic-handler and steamworks
     }
     app.run();
 }

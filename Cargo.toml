@@ -15,7 +15,6 @@ leafwing-input-manager = "0.14.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 bevy-steamworks = { path = "bevy_steamworks" }
-# bevy-panic-handler = "2.2.0"
 
 [profile.dev]
 # debug = 1
