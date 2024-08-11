@@ -17,7 +17,8 @@ impl Plugin for GamePlugin {
                 GameStateSystems::LaunchAnim.run_if(in_state(GameState::LaunchAnim)),
                 GameStateSystems::OptionsMenu.run_if(in_state(GameState::OptionsMenu)),
                 GameStateSystems::CreditsMenu.run_if(in_state(GameState::CreditsMenu)),
-                GameStateSystems::Gameplay.run_if(in_state(GameState::Gameplay)),
+                GameStateSystems::Gameplay
+                    .run_if(in_state(GameState::Gameplay).and_then(in_state(PausedState::Running))),
             ),
         );
         gameplay::plugin(app);
