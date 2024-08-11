@@ -1,31 +1,66 @@
 use bevy::prelude::*;
+use leafwing_input_manager::prelude::*;
 
 pub struct GamePlugin;
 
+mod gameplay;
+
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        // TODO
-        app.add_systems(Startup, startup);
+        app.add_plugins(InputManagerPlugin::<InputActions>::default());
+        app.insert_state(GameState::Gameplay);
+        app.init_state::<PausedState>();
+        app.configure_sets(
+            Update,
+            (
+                GameStateSystems::MainMenu.run_if(in_state(GameState::MainMenu)),
+                GameStateSystems::LaunchAnim.run_if(in_state(GameState::LaunchAnim)),
+                GameStateSystems::OptionsMenu.run_if(in_state(GameState::OptionsMenu)),
+                GameStateSystems::CreditsMenu.run_if(in_state(GameState::CreditsMenu)),
+                GameStateSystems::Gameplay.run_if(in_state(GameState::Gameplay)),
+            ),
+        );
+        gameplay::plugin(app);
     }
 }
-
-fn startup(mut command: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    command.spawn(Camera3dBundle {
-        transform: Transform::from_translation(Vec3::new(0., 0., -3.)),
-        ..default()
-    });
-    command.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            color: Color::linear_rgb(1., 1., 1.),
-            illuminance: 30_000.0,
-            shadows_enabled: true,
-            ..default()
-        },
-        ..default()
-    });
-    command.spawn(PbrBundle {
-        mesh: meshes.add(Sphere::default().mesh().uv(32, 18)),
-        ..default()
-    });
-    // command.spawn()
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GameState {
+    #[default]
+    MainMenu,
+    LaunchAnim,
+    OptionsMenu,
+    CreditsMenu,
+    Gameplay,
 }
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+enum GameStateSystems {
+    MainMenu,
+    LaunchAnim,
+    OptionsMenu,
+    CreditsMenu,
+    Gameplay,
+}
+
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum PausedState {
+    #[default]
+    Running,
+    PausedByPlayer,
+    PausedBySystem,
+}
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+enum PausedStateSystems {
+    Running,
+    PausedByPlayer,
+    PausedBySystem,
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+enum InputActions {
+    Move,
+    Accept,
+    Cancel,
+}
+
+impl Actionlike for InputActions {}

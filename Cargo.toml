@@ -12,9 +12,17 @@ bevy = { version = "0.14.0" }
 bevy_htnp = { path = "bevy_htnp" }
 bevy_tweening = "0.11.0"
 leafwing-input-manager = "0.14.0"
+bevy-steamworks = { path = "bevy_steamworks", optional = true }
 
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-bevy-steamworks = { path = "bevy_steamworks" }
+[features]
+default = ["full-game"]
+steam = ["dep:bevy-steamworks"]
+full-game = []                  # as opposed to demo
+
+#
+#   Performance/Optimizations
+#
+
 
 [profile.dev]
 # debug = 1

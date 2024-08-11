@@ -1,8 +1,5 @@
-#![allow(dead_code)]
-
 use bevy::prelude::*;
 use bevy_htnp::prelude::HtnPlanningPlugin;
-use bevy_steamworks::SteamworksPlugin;
 use game::GamePlugin;
 
 mod game;
@@ -10,8 +7,9 @@ mod gen;
 
 fn main() {
     let mut app = App::new();
-    #[cfg(not(target_family = "wasm"))]
+    #[cfg(feature = "steam")]
     {
+        use bevy_steamworks::SteamworksPlugin;
         // steam requires being initialized before render plugins. Looks gross but I guess I gotta do it this way.
         if let Ok(steam_plugin) = SteamworksPlugin::init_app(gen::STEAM_APP_ID) {
             app.add_plugins(steam_plugin);
