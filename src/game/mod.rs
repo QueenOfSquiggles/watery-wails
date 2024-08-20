@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowFocused};
 use leafwing_input_manager::prelude::*;
 
 pub struct GamePlugin;
@@ -19,8 +19,21 @@ impl Plugin for GamePlugin {
                 GameStateSystems::CreditsMenu.run_if(in_state(GameState::CreditsMenu)),
                 GameStateSystems::Gameplay
                     .run_if(in_state(GameState::Gameplay).and_then(in_state(PausedState::Running))),
+                GameStateSystems::InGamePaused.run_if(
+                    not(in_state(PausedState::Running)).and_then(in_state(GameState::Gameplay)),
+                ),
             ),
         );
+        let (window_entity, _) = app
+            .world_mut()
+            .query::<(Entity, &Window)>()
+            .single(app.world());
+
+        app.world_mut()
+            .entity_mut(window_entity)
+            .observe(watch_for_focus_lost);
+
+        // app.observe(watch_for_focus_lost);
         gameplay::plugin(app);
     }
 }
@@ -40,18 +53,12 @@ enum GameStateSystems {
     OptionsMenu,
     CreditsMenu,
     Gameplay,
+    InGamePaused,
 }
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PausedState {
     #[default]
-    Running,
-    PausedByPlayer,
-    PausedBySystem,
-}
-
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-enum PausedStateSystems {
     Running,
     PausedByPlayer,
     PausedBySystem,
@@ -72,4 +79,22 @@ impl Actionlike for InputActions {
             InputActions::Cancel => InputControlKind::Button,
         }
     }
+}
+
+fn watch_for_focus_lost(
+    trigger: Trigger<WindowFocused>,
+    mut pause_state: ResMut<NextState<PausedState>>,
+    current_state: Res<State<PausedState>>,
+) {
+    // TODO: learn how to detect window focus lost
+    if *current_state.get() != PausedState::Running || trigger.event().focused {
+        info!(
+            "System focus lost but was in the wrong state {:?}, event={:?}",
+            current_state.get(),
+            trigger.event()
+        );
+        return;
+    }
+    info!("System focus lost");
+    pause_state.set(PausedState::PausedBySystem);
 }

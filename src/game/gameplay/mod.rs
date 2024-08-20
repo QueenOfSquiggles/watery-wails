@@ -19,7 +19,15 @@ fn startup(
     mut command: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    assets: Res<AssetServer>,
 ) {
+    command
+        .spawn(SceneBundle {
+            scene: assets.load(GltfAssetLabel::Scene(0).from_asset("Sandwich Character.glb")),
+            ..default()
+        })
+        .insert(Name::new("Sandwich Goober"));
+
     let input_map = InputMap::default()
         // Move Action
         .with_dual_axis(InputActions::Move, GamepadStick::LEFT)
@@ -70,6 +78,10 @@ fn startup(
     command.spawn(PbrBundle {
         mesh: meshes.add(Sphere::default().mesh().uv(32, 18)),
         material: materials.add(StandardMaterial::from_color(Color::hsl(0.0, 0.7, 0.5))),
+        transform: Transform {
+            translation: Vec3::new(3., 0., 0.),
+            ..default()
+        },
         ..default()
     });
 }
