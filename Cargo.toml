@@ -8,20 +8,23 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.14.0" }
+bevy = { version = "0.14" }
 bevy_htnp = { path = "bevy_htnp" }
 bevy_tweening = "0.11.0"
-leafwing-input-manager = "0.14.0"
+leafwing-input-manager = "0.15.0"
 bevy-steamworks = { path = "bevy_steamworks", optional = true }
 bevy-inspector-egui = "0.25.2"
-bevy_mod_picking = "0.20.1"
-oxidized_navigation = "0.11.0"
+bevy_mod_picking = { version = "0.20.1", features = ["backend_rapier"] }
+oxidized_navigation = { version = "0.11.0", features = ["rapier"] }
 bevy_rapier3d = "0.27.0"
 
 [features]
-default = ["full-game"]
+default = [
+    "full-game",
+    # should include steam but doesn't work well with my debugging configs
+]
 steam = ["dep:bevy-steamworks"]
-full-game = []                  # as opposed to demo
+full-game = [] # as opposed to demo
 
 #
 #   Performance/Optimizations
@@ -31,7 +34,6 @@ full-game = []                  # as opposed to demo
 [profile.dev]
 # debug = 1
 opt-level = 1
-incremental = true
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

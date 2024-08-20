@@ -64,4 +64,12 @@ enum InputActions {
     Cancel,
 }
 
-impl Actionlike for InputActions {}
+impl Actionlike for InputActions {
+    fn input_control_kind(&self) -> InputControlKind {
+        match self {
+            InputActions::Move => InputControlKind::DualAxis,
+            InputActions::Accept => InputControlKind::Button,
+            InputActions::Cancel => InputControlKind::Button,
+        }
+    }
+}

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_htnp::prelude::HtnPlanningPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use game::GamePlugin;
 
 mod game;
@@ -18,6 +19,7 @@ fn main() {
 
     app.add_plugins(DefaultPlugins)
         .add_plugins(HtnPlanningPlugin::new())
+        .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(GamePlugin); // game systems & data
     #[cfg(target_family = "wasm")]
     {

@@ -1,6 +1,6 @@
 use bevy::{core_pipeline::tonemapping::Tonemapping, prelude::*};
 use leafwing_input_manager::{
-    prelude::{ActionState, DualAxis, InputMap, VirtualDPad},
+    prelude::{ActionState, GamepadStick, InputMap, KeyboardVirtualDPad},
     InputManagerBundle,
 };
 
@@ -22,20 +22,19 @@ fn startup(
 ) {
     let input_map = InputMap::default()
         // Move Action
-        .insert(InputActions::Move, DualAxis::right_stick())
-        .insert(InputActions::Move, VirtualDPad::arrow_keys())
-        .insert(InputActions::Move, VirtualDPad::wasd())
+        .with_dual_axis(InputActions::Move, GamepadStick::LEFT)
+        .with_dual_axis(InputActions::Move, KeyboardVirtualDPad::WASD)
+        .with_dual_axis(InputActions::Move, KeyboardVirtualDPad::ARROW_KEYS)
         // Accept Action
-        .insert(InputActions::Accept, KeyCode::Enter)
-        .insert(InputActions::Accept, KeyCode::KeyZ)
-        .insert(InputActions::Accept, MouseButton::Left)
-        .insert(InputActions::Accept, GamepadButtonType::South)
+        .with(InputActions::Accept, KeyCode::Enter)
+        .with(InputActions::Accept, KeyCode::KeyZ)
+        .with(InputActions::Accept, MouseButton::Left)
+        .with(InputActions::Accept, GamepadButtonType::South)
         // Cancel Action
-        .insert(InputActions::Cancel, KeyCode::Escape)
-        .insert(InputActions::Cancel, KeyCode::KeyX)
-        .insert(InputActions::Cancel, MouseButton::Right)
-        .insert(InputActions::Cancel, GamepadButtonType::East)
-        .build();
+        .with(InputActions::Cancel, KeyCode::Escape)
+        .with(InputActions::Cancel, KeyCode::KeyX)
+        .with(InputActions::Cancel, MouseButton::Right)
+        .with(InputActions::Cancel, GamepadButtonType::East);
     // TODO support remapping
 
     command
@@ -87,12 +86,8 @@ fn move_cam(
         next_pause_state.set(PausedState::PausedByPlayer);
         info!("Accept pressed");
     }
-    if action.pressed(&InputActions::Move) {
-        let Some(data) = action.axis_pair(&InputActions::Move) else {
-            return;
-        };
-        trans.translation += Vec3::new(data.x(), data.y(), 0.) * SPEED * time.delta_seconds();
-    }
+    let data = action.axis_pair(&InputActions::Move);
+    trans.translation += data.extend(0.0) * SPEED * time.delta_seconds();
 }
 
 fn unpause(
