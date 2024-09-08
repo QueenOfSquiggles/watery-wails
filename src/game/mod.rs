@@ -1,5 +1,4 @@
 use bevy::{prelude::*, window::WindowFocused};
-use leafwing_input_manager::prelude::*;
 
 pub struct GamePlugin;
 
@@ -7,7 +6,6 @@ mod gameplay;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(InputManagerPlugin::<InputActions>::default());
         app.insert_state(GameState::Gameplay);
         app.init_state::<PausedState>();
         app.configure_sets(
@@ -62,23 +60,6 @@ pub enum PausedState {
     Running,
     PausedByPlayer,
     PausedBySystem,
-}
-
-#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
-enum InputActions {
-    Move,
-    Accept,
-    Cancel,
-}
-
-impl Actionlike for InputActions {
-    fn input_control_kind(&self) -> InputControlKind {
-        match self {
-            InputActions::Move => InputControlKind::DualAxis,
-            InputActions::Accept => InputControlKind::Button,
-            InputActions::Cancel => InputControlKind::Button,
-        }
-    }
 }
 
 fn watch_for_focus_lost(

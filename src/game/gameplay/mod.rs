@@ -1,18 +1,23 @@
-use bevy::{core_pipeline::tonemapping::Tonemapping, prelude::*};
-use leafwing_input_manager::{
-    prelude::{ActionState, GamepadStick, InputMap, KeyboardVirtualDPad},
-    InputManagerBundle,
+use avian3d::{
+    math::Quaternion,
+    prelude::{ColliderConstructor, ColliderConstructorHierarchy, PhysicsDebugPlugin},
+    PhysicsPlugins,
 };
+use bevy::prelude::*;
+use debug::{DebugPlugin, DebugVisual};
+use player::PlayerPlugin;
 
-use super::{GameStateSystems, InputActions, PausedState};
+mod debug;
+mod player;
 
 pub fn plugin(app: &mut App) {
+    app.add_plugins((
+        DebugPlugin,
+        PlayerPlugin,
+        PhysicsPlugins::default(),
+        PhysicsDebugPlugin::default(),
+    ));
     app.add_systems(Startup, startup);
-    app.add_systems(Update, (move_cam).in_set(GameStateSystems::Gameplay));
-    app.add_systems(
-        Update,
-        (unpause).run_if(not(in_state(PausedState::Running))),
-    );
 }
 
 fn startup(
@@ -24,39 +29,38 @@ fn startup(
     command
         .spawn(SceneBundle {
             scene: assets.load(GltfAssetLabel::Scene(0).from_asset("Sandwich Character.glb")),
-            ..default()
-        })
-        .insert(Name::new("Sandwich Goober"));
-
-    let input_map = InputMap::default()
-        // Move Action
-        .with_dual_axis(InputActions::Move, GamepadStick::LEFT)
-        .with_dual_axis(InputActions::Move, KeyboardVirtualDPad::WASD)
-        .with_dual_axis(InputActions::Move, KeyboardVirtualDPad::ARROW_KEYS)
-        // Accept Action
-        .with(InputActions::Accept, KeyCode::Enter)
-        .with(InputActions::Accept, KeyCode::KeyZ)
-        .with(InputActions::Accept, MouseButton::Left)
-        .with(InputActions::Accept, GamepadButtonType::South)
-        // Cancel Action
-        .with(InputActions::Cancel, KeyCode::Escape)
-        .with(InputActions::Cancel, KeyCode::KeyX)
-        .with(InputActions::Cancel, MouseButton::Right)
-        .with(InputActions::Cancel, GamepadButtonType::East);
-    // TODO support remapping
-
-    command
-        .spawn(Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0., 0., 3.)),
-            projection: PerspectiveProjection {
-                fov: 60.0_f32.to_radians(),
+            transform: Transform {
+                translation: Vec3::new(0.7, -1.5, -1.6),
+                rotation: Quaternion::from_euler(EulerRot::XYZ, 0., -1.2, 0.),
                 ..default()
-            }
-            .into(),
-            tonemapping: Tonemapping::AcesFitted,
+            },
             ..default()
         })
-        .insert(InputManagerBundle::with_map(input_map));
+        .insert((
+            Name::new("Sandwich Goober"),
+            // DebugVisual::capsule(1., 1.5).with_offset(Vec3::new(0., 0.75, 0.)),
+            ColliderConstructorHierarchy::new(ColliderConstructor::ConvexDecompositionFromMesh),
+        ));
+    command
+        .spawn(SceneBundle {
+            scene: assets.load(GltfAssetLabel::Scene(0).from_asset("cameras_testing.glb")),
+            transform: Transform {
+                translation: Vec3 {
+                    x: -7.7,
+                    y: -3.2,
+                    z: -14.1,
+                },
+                rotation: Quaternion::from_rotation_y(0.8),
+                ..default()
+            },
+            ..default()
+        })
+        .insert((
+            Name::new("SceneLevel"),
+            ColliderConstructorHierarchy::new(ColliderConstructor::ConvexHullFromMesh),
+            // DebugVisual::capsule(1., 1.5).with_offset(Vec3::new(0., 0.75, 0.)),
+        ));
+
     command.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             color: Color::linear_rgb(1., 1., 1.),
@@ -75,41 +79,58 @@ fn startup(
         },
         ..default()
     });
-    command.spawn(PbrBundle {
-        mesh: meshes.add(Sphere::default().mesh().uv(32, 18)),
-        material: materials.add(StandardMaterial::from_color(Color::hsl(0.0, 0.7, 0.5))),
-        transform: Transform {
-            translation: Vec3::new(3., 0., 0.),
+    command
+        .spawn(PbrBundle {
+            mesh: meshes.add(Sphere::default().mesh().uv(32, 18)),
+            material: materials.add(StandardMaterial::from_color(Color::hsl(0.0, 0.7, 0.5))),
+            transform: Transform {
+                translation: Vec3::new(3., 0., 0.),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    });
+        })
+        .insert((
+            DebugVisual::cube(1.5).with_colour(Color::linear_rgb(1., 0., 0.)),
+            Name::new("Test Sphere"),
+        ));
 }
 
-fn move_cam(
-    mut query: Query<(&mut Transform, &ActionState<InputActions>), With<Camera3d>>,
-    time: Res<Time>,
-    mut next_pause_state: ResMut<NextState<PausedState>>,
-) {
-    const SPEED: f32 = 2.0;
-    let (mut trans, action) = query.single_mut();
+// fn move_cam(
+//     mut query: Query<(&mut Transform, &ActionState<InputActions>), With<Camera3d>>,
+//     time: Res<Time>,
+// ) {
+//     const SPEED: f32 = 2.0;
+//     let (mut trans, action) = query.single_mut();
+//     let data = action.axis_pair(&InputActions::Move);
+//     trans.translation += data.extend(0.0) * SPEED * time.delta_seconds();
+// }
 
-    if action.just_pressed(&InputActions::Accept) {
-        next_pause_state.set(PausedState::PausedByPlayer);
-        info!("Accept pressed");
-    }
-    let data = action.axis_pair(&InputActions::Move);
-    trans.translation += data.extend(0.0) * SPEED * time.delta_seconds();
-}
-
-fn unpause(
-    mut query: Query<&ActionState<InputActions>, With<Camera3d>>,
-    mut next_pause_state: ResMut<NextState<PausedState>>,
-) {
-    let action = query.single_mut();
-
-    if action.just_pressed(&InputActions::Cancel) {
-        next_pause_state.set(PausedState::Running);
-        info!("Cancel pressed");
-    }
-}
+// fn manage_active_camera(
+//     mut query: Query<&mut Camera>,
+//     query_input: Query<&ActionState<InputActions>>,
+//     mut index: Local<usize>,
+// ) {
+//     let Ok(input) = query_input.get_single() else {
+//         warn_once!("No available ActionState components at this moment");
+//         return;
+//     };
+//     let entries = query.iter().count();
+//     let last_index = *index;
+//     if input.just_pressed(&InputActions::Accept) {
+//         *index += 1;
+//         if *index >= entries {
+//             *index = 0;
+//         }
+//     } else if input.just_pressed(&InputActions::Cancel) {
+//         if *index == 0 {
+//             *index = entries;
+//         }
+//         *index -= 1;
+//     }
+//     if last_index != *index {
+//         info!("Currently active camera: {} of {}", *index, (entries - 1));
+//     }
+//     for (e, mut cam) in query.iter_mut().enumerate() {
+//         cam.is_active = e == *index;
+//     }
+// }

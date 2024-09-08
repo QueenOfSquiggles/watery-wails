@@ -11,12 +11,15 @@ edition = "2021"
 bevy = { version = "0.14" }
 bevy_htnp = { path = "bevy_htnp" }
 bevy_tweening = "0.11.0"
-leafwing-input-manager = "0.15.0"
+leafwing-input-manager = { version = "0.15.0", features = ["egui"] }
 bevy-steamworks = { path = "bevy_steamworks", optional = true }
 bevy-inspector-egui = { version = "0.25.2", features = ["bevy_pbr"] }
-bevy_mod_picking = { version = "0.20.1", features = ["backend_rapier"] }
-oxidized_navigation = { version = "0.11.0", features = ["rapier"] }
-bevy_rapier3d = "0.27.0"
+bevy_mod_picking = { version = "0.20.1", features = ["backend_avian"] }
+oxidized_navigation = { version = "0.11.0", default-features = false, features = [
+    "parry_015",
+    "debug_draw",
+] }
+avian3d = "0.1.2"
 
 [features]
 default = [
